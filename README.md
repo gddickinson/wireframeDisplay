@@ -1,17 +1,17 @@
 # 3D Wireframe Viewer and Physics Simulator
 
-This project is a Python-based 3D visualization tool that allows users to create, view, and manipulate various 3D shapes and data sources. It includes basic physics simulation capabilities and aims to become a versatile platform for 3D data visualization and animation.
+This project is a Python-based 3D visualization tool that allows users to create, view, and manipulate various 3D shapes. It aims to become a versatile platform for 3D data visualization, physics and animation.
 
 ## Features
 
-- **3D Shape Generation**: Create various 3D shapes including basic geometries (cube, sphere, etc.), parametric shapes, and fractals.
-- **Data Visualization**: Load and visualize data from various sources including MRI scans and super-resolution data.
-- **Scene Management**: Add multiple objects to a scene, manipulate them individually or as a group.
-- **Real-time Transformations**: Apply translations, rotations, and scaling to objects in real-time.
-- **Display Customization**: Toggle visibility of faces, edges, and vertices. Customize colors and sizes.
-- **Basic Physics Simulation**: Simulate simple physics including gravity and collisions.
-- **Animation**: Animate scenes with play/pause functionality.
-- **File Operations**: Save and load scenes or individual objects in various formats.
+- **3D Shape Generation**: 11 basic geometries (cube, sphere, Platonic solids, torus, cylinder, cone, pyramid, prism), 7 parametric surfaces (Mobius strip, Klein bottle, trefoil knot, helicoid, catenoid, sine surface, gyroid), 7 fractals (Sierpinski triangle and tetrahedron, Koch snowflake, Menger sponge, Apollonian gasket, Jerusalem cube, 3D Pythagoras tree) and text from the characters in `letter_definitions.py` (currently A, B, 0 and !).
+- **Data Visualization** (planned): the shape loader has MRI and super-resolution buttons, but their loaders (`Wireframe.load_mri`, `Wireframe.load_super_resolution`) are not written yet, so they report an error.
+- **Scene Management**: Add multiple objects to a scene; rename, delete, edit properties (mass, scale, rotation speed) from the list's right-click menu.
+- **Real-time Transformations**: translation and scale sliders for the whole scene; drag an object to rotate it (Ctrl + drag to move it).
+- **Display Customization**: a Display Options dialog (faces, edges, vertices, colours, sizes); at present only "Show Faces" changes the view.
+- **Basic Physics Simulation** (in progress): `Scene.update_physics` (gravity and a bounce at y = 0) exists, but its call in the update loop is commented out, so Play does not run it yet.
+- **Animation**: per-object rotation at a set speed (right-click > Toggle Animation, speeds in Properties).
+- **File Operations**: open and save single objects as OBJ or JSON.
 
 ## Prerequisites
 
@@ -19,14 +19,14 @@ This project is a Python-based 3D visualization tool that allows users to create
 - PyQt5
 - PyQtGraph
 - NumPy
-- (Add any other dependencies your project requires)
+- SciPy and scikit-image (the Gyroid uses scikit-image's marching cubes)
 
 ## Installation
 
 1. Clone this repository:
    ```
-   git clone https://github.com/yourusername/3d-wireframe-viewer.git
-   cd 3d-wireframe-viewer
+   git clone https://github.com/gddickinson/wireframeDisplay.git
+   cd wireframeDisplay
    ```
 
 2. Install the required packages:
@@ -45,7 +45,8 @@ python wireframe_viewer.py
 - Use the "Load Shape" button to add shapes to your scene.
 - Manipulate shapes using the transformation controls.
 - Toggle display options in the "Display Options" dialog.
-- Use the play/pause button to start/stop physics simulations.
+- Right-click an object in the list for Rename, Delete, Properties and Toggle Animation; double-click it to centre the camera on it.
+- The wheel zooms the camera.
 
 ## Future Goals
 
@@ -63,7 +64,7 @@ Contributions to this project are welcome! Please feel free to submit a Pull Req
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Acknowledgments
 
