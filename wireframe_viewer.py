@@ -88,12 +88,12 @@ class SceneObject:
 
         if self.mesh_item is None:
             #print("Creating new mesh item")
-            self.mesh_item = gl.GLMeshItem(vertexes=transformed_vertices, faces=self.wireframe.faces,
+            self.mesh_item = gl.GLMeshItem(vertexes=transformed_vertices, faces=self.wireframe.triangles(),
                                            smooth=True, drawEdges=True, edgeColor=(0, 0, 0, 1))
             self.mesh_item.setColor(self.current_color)
         else:
             #print("Updating existing mesh item")
-            self.mesh_item.setMeshData(vertexes=transformed_vertices, faces=self.wireframe.faces, color=self.current_color)
+            self.mesh_item.setMeshData(vertexes=transformed_vertices, faces=self.wireframe.triangles(), color=self.current_color)
 
         self.mesh_item.setVisible(display_options.show_faces.isChecked())
         #print(f"Mesh visibility set to: {display_options.show_faces.isChecked()}")
@@ -149,7 +149,7 @@ class SceneObject:
             # Apply translation
             translated_vertices = rotated_vertices + self.position
 
-            self.mesh_item.setMeshData(vertexes=translated_vertices, faces=self.wireframe.faces)
+            self.mesh_item.setMeshData(vertexes=translated_vertices, faces=self.wireframe.triangles())
 
             if self.edge_item:
                 self.edge_item.setData(pos=translated_vertices)

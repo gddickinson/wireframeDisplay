@@ -3,20 +3,32 @@ import pyqtgraph.opengl as gl
 from math import pi, sin, cos, sqrt
 import json
 from letter_definitions import ALL_CHARACTERS
+from mesh_utils import face_array, triangulate
 
 class Wireframe:
     def __init__(self, vertices, faces=None, edges=None):
         self.original_vertices = np.array(vertices, dtype=np.float32)
         self.vertices = self.original_vertices.copy()
-        self.faces = np.array(faces, dtype=np.int32) if faces is not None else None
+        # Polygon faces of one size are kept as (N, k); mixed sizes are fan-triangulated; negative indices count
+        # from the end of the vertex list.
+        self.faces = face_array(faces, len(self.original_vertices))
         self.edges = np.array(edges, dtype=np.int32) if edges is not None else None
         self.mesh_item = None
 
+    def triangles(self):
+        """Faces as (M, 3) triangles, as OpenGL draws them (quads and other polygons are fan-triangulated)."""
+        if self.faces is None:
+            return None
+        if self.faces.ndim == 2 and self.faces.shape[1] == 3:
+            return self.faces
+        return triangulate(self.faces)
+
     def create_mesh_item(self, draw_faces=True, draw_edges=True):
-        colors = np.ones((len(self.faces), 4), dtype=np.float32) if self.faces is not None else None
+        tris = self.triangles()
+        colors = np.ones((len(tris), 4), dtype=np.float32) if tris is not None else None
         self.mesh_item = gl.GLMeshItem(
             vertexes=self.vertices,
-            faces=self.faces,
+            faces=tris,
             faceColors=colors,
             drawEdges=draw_edges,
             drawFaces=draw_faces,
@@ -183,15 +195,15 @@ class Wireframe:
                 if line.startswith('v '):
                     vertices.append([float(x) for x in line.split()[1:4]])
                 elif line.startswith('f '):
-                    faces.append([int(x.split('/')[0]) - 1 for x in line.split()[1:4]])
-        return cls(np.array(vertices, dtype=np.float32), np.array(faces, dtype=np.int32))
+                    faces.append([int(x.split('/')[0]) - 1 for x in line.split()[1:]])
+        return cls(np.array(vertices, dtype=np.float32), faces)
 
     def save_to_obj(self, filename):
         with open(filename, 'w') as file:
             for v in self.vertices:
                 file.write(f"v {v[0]} {v[1]} {v[2]}\n")
             for f in self.faces:
-                file.write(f"f {f[0]+1} {f[1]+1} {f[2]+1}\n")
+                file.write("f " + " ".join(str(int(i) + 1) for i in f) + "\n")
 
     def save_to_json(self, filename):
         data = {
