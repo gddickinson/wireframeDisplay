@@ -510,7 +510,7 @@ class Wireframe:
 
     @classmethod
     def create_trefoil_knot(cls, u_res=100, tube_radius=0.3):
-        t = np.linspace(0, 2*pi, u_res)
+        t = np.linspace(0, 2*pi, u_res, endpoint=False)  # closed loop: ring i joins ring (i + 1) % u_res
         x = (2 + np.cos(3*t)) * np.cos(2*t)
         y = (2 + np.cos(3*t)) * np.sin(2*t)
         z = np.sin(3*t)
@@ -524,6 +524,7 @@ class Wireframe:
             circle = np.column_stack((x, y, np.zeros_like(x)))
 
             z_axis = np.array([0, 0, 1])
+            normal = normal / np.linalg.norm(normal)  # arccos needs the unit tangent
             rotation_axis = np.cross(z_axis, normal)
             rotation_angle = np.arccos(np.dot(z_axis, normal))
             rotation_matrix = cls.rotation_matrix(rotation_axis, rotation_angle)
