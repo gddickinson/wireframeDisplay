@@ -27,7 +27,7 @@ def test_quads_are_triangulated_for_drawing():
 
 def test_mesh_item_gets_triangles():
     from PyQt5.QtWidgets import QApplication
-    QApplication.instance() or QApplication([])
+    app = QApplication.instance() or QApplication([])  # noqa: F841 (kept alive for the test)
     w = Wireframe.create_dodecahedron()
     item = w.create_mesh_item()
     assert item.opts["meshdata"].faces().shape == (36, 3)

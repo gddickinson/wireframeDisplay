@@ -248,6 +248,9 @@ class Wireframe:
                 char_shapes.append(char_shape)
                 offset += spacing
 
+        if not char_shapes:
+            raise ValueError(f"No supported characters in {text!r}; defined: {' '.join(sorted(ALL_CHARACTERS))}")
+
         # Combine all character shapes into a single wireframe
         all_vertices = []
         all_faces = []

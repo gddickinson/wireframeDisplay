@@ -95,7 +95,8 @@ class SceneObject:
             #print("Updating existing mesh item")
             self.mesh_item.setMeshData(vertexes=transformed_vertices, faces=self.wireframe.triangles(), color=self.current_color)
 
-        self.mesh_item.setVisible(display_options.show_faces.isChecked())
+        if display_options is not None:  # None: keep the current visibility (animation / properties updates)
+            self.mesh_item.setVisible(display_options.show_faces.isChecked())
         #print(f"Mesh visibility set to: {display_options.show_faces.isChecked()}")
 
     def get_center(self):
@@ -619,26 +620,31 @@ class WireframeViewer(QMainWindow):
         if filename:
             try:
                 if filename.endswith('.obj'):
-                    self.wireframe = Wireframe.load_from_obj(filename)
+                    wireframe = Wireframe.load_from_obj(filename)
                 elif filename.endswith('.json'):
-                    self.wireframe = Wireframe.load_from_json(filename)
+                    wireframe = Wireframe.load_from_json(filename)
+                else:
+                    raise ValueError("expected a .obj or .json file")
+                self.add_wireframe(wireframe, f"file: {filename.replace(chr(92), '/').split('/')[-1]}")
                 self.update_display()
-                self.reset_transformation()
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"Failed to open file: {str(e)}")
 
     def save_file(self):
-        if not self.wireframe:
+        """Save the selected scene object's wireframe (or the most recently added one)."""
+        if not self.scene.objects:
             QMessageBox.warning(self, "Warning", "No wireframe to save")
             return
+        row = self.object_list.currentRow()
+        wireframe = self.scene.objects[row if 0 <= row < len(self.scene.objects) else -1].wireframe
 
         filename, _ = QFileDialog.getSaveFileName(self, "Save File", "", "OBJ Files (*.obj);;JSON Files (*.json)")
         if filename:
             try:
-                if filename.endswith('.obj'):
-                    self.wireframe.save_to_obj(filename)
-                elif filename.endswith('.json'):
-                    self.wireframe.save_to_json(filename)
+                if filename.endswith('.json'):
+                    wireframe.save_to_json(filename)
+                else:
+                    wireframe.save_to_obj(filename)
                 QMessageBox.information(self, "Success", "File saved successfully")
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"Failed to save file: {str(e)}")
@@ -655,19 +661,24 @@ class WireframeViewer(QMainWindow):
         try:
             wireframe = self.create_wireframe(shape_type, shape_info)
             if wireframe:
-                scene_object = SceneObject(wireframe)
-                scene_object.wireframe.name = f"{shape_type}: {shape_info}"  # Set a name for the object
-                self.scene.add_object(scene_object)
-                scene_object.update_mesh(self.display_options)
-                self.view.addItem(scene_object.mesh_item)
-                if scene_object.edge_item:
-                    self.view.addItem(scene_object.edge_item)
-                if scene_object.vertex_item:
-                    self.view.addItem(scene_object.vertex_item)
-                self.object_list.addItem(scene_object.wireframe.name)
+                self.add_wireframe(wireframe, f"{shape_type}: {shape_info}")
         except Exception as e:
             print(f"Error loading shape: {str(e)}")
             QMessageBox.critical(self, "Error", f"Failed to load shape: {str(e)}")
+
+    def add_wireframe(self, wireframe, name):
+        """Add a wireframe to the scene; the mesh is built first so a failure leaves the scene unchanged."""
+        scene_object = SceneObject(wireframe)
+        scene_object.wireframe.name = name
+        scene_object.update_mesh(self.display_options)
+        self.scene.add_object(scene_object)
+        self.view.addItem(scene_object.mesh_item)
+        if scene_object.edge_item:
+            self.view.addItem(scene_object.edge_item)
+        if scene_object.vertex_item:
+            self.view.addItem(scene_object.vertex_item)
+        self.object_list.addItem(scene_object.wireframe.name)
+        return scene_object
 
     def create_wireframe(self, shape_type, shape_info):
         if shape_type == 'basic':
@@ -973,7 +984,11 @@ class WireframeViewer(QMainWindow):
         view_matrix = self.view.viewMatrix()
 
         # Get the projection matrix
-        projection_matrix = self.view.projectionMatrix()
+        try:
+            projection_matrix = self.view.projectionMatrix()  # pyqtgraph < 0.13
+        except TypeError:  # pyqtgraph >= 0.13: projectionMatrix(region, viewport)
+            viewport = self.view.getViewport()
+            projection_matrix = self.view.projectionMatrix(viewport, viewport)
 
         # Combine view and projection matrices
         view_projection_matrix = projection_matrix * view_matrix
