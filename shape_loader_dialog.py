@@ -2,6 +2,8 @@ from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QComboBox, QPush
                              QLabel, QGroupBox, QFileDialog, QMessageBox, QSpinBox, QDoubleSpinBox)
 from PyQt5.QtCore import pyqtSignal, Qt
 
+import shape_catalog as catalog
+
 class ShapeLoaderDialog(QDialog):
     shape_loaded = pyqtSignal(object)  # Signal to emit the loaded shape
 
@@ -19,10 +21,7 @@ class ShapeLoaderDialog(QDialog):
         basic_group = QGroupBox("Basic Shapes")
         basic_layout = QVBoxLayout()
         self.shape_combo = QComboBox()
-        self.shape_combo.addItems([
-            'Cube', 'Sphere', 'Tetrahedron', 'Octahedron', 'Icosahedron', 'Dodecahedron',
-            'Torus', 'Cylinder', 'Cone', 'Pyramid', 'Prism'
-        ])
+        self.shape_combo.addItems(catalog.BASIC_SHAPES)
         basic_layout.addWidget(self.shape_combo)
         self.load_basic_button = QPushButton('Load Basic Shape')
         self.load_basic_button.clicked.connect(self.load_basic_shape)
@@ -34,19 +33,16 @@ class ShapeLoaderDialog(QDialog):
         parametric_group = QGroupBox("Parametric Shapes")
         parametric_layout = QVBoxLayout()
         self.parametric_combo = QComboBox()
-        self.parametric_combo.addItems([
-            'Mobius Strip', 'Klein Bottle', 'Trefoil Knot', 'Helicoid',
-            'Catenoid', 'Sine Surface', 'Gyroid'
-        ])
+        self.parametric_combo.addItems(catalog.PARAMETRIC_SHAPES)
         parametric_layout.addWidget(self.parametric_combo)
         self.param_u = QSpinBox()
-        self.param_u.setRange(10, 100)
-        self.param_u.setValue(30)
+        self.param_u.setRange(*catalog.PARAM_RESOLUTION[:2])
+        self.param_u.setValue(catalog.PARAM_RESOLUTION[2])
         parametric_layout.addWidget(QLabel("U resolution:"))
         parametric_layout.addWidget(self.param_u)
         self.param_v = QSpinBox()
-        self.param_v.setRange(10, 100)
-        self.param_v.setValue(30)
+        self.param_v.setRange(*catalog.PARAM_RESOLUTION[:2])
+        self.param_v.setValue(catalog.PARAM_RESOLUTION[2])
         parametric_layout.addWidget(QLabel("V resolution:"))
         parametric_layout.addWidget(self.param_v)
         self.load_parametric_button = QPushButton('Load Parametric Shape')
@@ -59,22 +55,18 @@ class ShapeLoaderDialog(QDialog):
         fractal_group = QGroupBox("Fractal Patterns")
         fractal_layout = QVBoxLayout()
         self.fractal_combo = QComboBox()
-        self.fractal_combo.addItems([
-            'Sierpinski Triangle', 'Koch Snowflake', 'Menger Sponge',
-            'Apollonian Gasket', 'Jerusalem Cube', 'Sierpinski Tetrahedron',
-            'Pythagoras Tree 3D'
-        ])
+        self.fractal_combo.addItems(catalog.FRACTALS)
         fractal_layout.addWidget(QLabel("Fractal Type:"))
         fractal_layout.addWidget(self.fractal_combo)
         self.fractal_iterations = QSpinBox()
-        self.fractal_iterations.setRange(1, 8)
-        self.fractal_iterations.setValue(4)
+        self.fractal_iterations.setRange(*catalog.FRACTAL_ITERATIONS[:2])
+        self.fractal_iterations.setValue(catalog.FRACTAL_ITERATIONS[2])
         fractal_layout.addWidget(QLabel("Iterations:"))
         fractal_layout.addWidget(self.fractal_iterations)
         self.fractal_size = QDoubleSpinBox()
-        self.fractal_size.setRange(0.1, 10.0)
-        self.fractal_size.setValue(1.0)
-        self.fractal_size.setSingleStep(0.1)
+        self.fractal_size.setRange(*catalog.FRACTAL_SIZE[:2])
+        self.fractal_size.setValue(catalog.FRACTAL_SIZE[2])
+        self.fractal_size.setSingleStep(catalog.FRACTAL_SIZE[3])
         fractal_layout.addWidget(QLabel("Size:"))
         fractal_layout.addWidget(self.fractal_size)
         self.load_fractal_button = QPushButton('Load Fractal')

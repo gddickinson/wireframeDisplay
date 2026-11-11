@@ -2,6 +2,10 @@
 
 This project is a Python-based 3D visualization tool that allows users to create, view, and manipulate various 3D shapes. It aims to become a versatile platform for 3D data visualization, physics and animation.
 
+**Web version:** the viewer also runs in the browser (shapes, camera, animation and physics ported to JavaScript): see [Web app](#web-app) below.
+
+> Related: [wireframe_display](https://github.com/gddickinson/wireframe_display) is a separate, earlier Pygame project with its own matrix code and orthographic projection. The two share their purpose, a few solids (tetrahedron, octahedron, icosahedron, sphere, torus, sine surface) and the same letter-A geometry, but no code; each repository is self-contained.
+
 ## Features
 
 - **3D Shape Generation**: 11 basic geometries (cube, sphere, Platonic solids, torus, cylinder, cone, pyramid, prism), 7 parametric surfaces (Mobius strip, Klein bottle, trefoil knot, helicoid, catenoid, sine surface, gyroid), 7 fractals (Sierpinski triangle and tetrahedron, Koch snowflake, Menger sponge, Apollonian gasket, Jerusalem cube, 3D Pythagoras tree) and text from the characters in `letter_definitions.py` (currently A, B, 0 and !).
@@ -9,7 +13,7 @@ This project is a Python-based 3D visualization tool that allows users to create
 - **Scene Management**: Add multiple objects to a scene; rename, delete, edit properties (mass, scale, rotation speed) from the list's right-click menu.
 - **Real-time Transformations**: translation and scale sliders for the whole scene; drag an object to rotate it (Ctrl + drag to move it).
 - **Display Customization**: a Display Options dialog (faces, edges, vertices, colours, sizes); at present only "Show Faces" changes the view.
-- **Basic Physics Simulation** (in progress): `Scene.update_physics` (gravity and a bounce at y = 0) exists, but its call in the update loop is commented out, so Play does not run it yet.
+- **Basic Physics Simulation** (in progress): `Scene.update_physics` (gravity and a bounce at y = 0) exists, but its call in the update loop is commented out, so Play does not run it yet. The web version runs it.
 - **Animation**: per-object rotation at a set speed (right-click > Toggle Animation, speeds in Properties).
 - **File Operations**: open and save single objects as OBJ or JSON.
 
@@ -47,6 +51,31 @@ python wireframe_viewer.py
 - Toggle display options in the "Display Options" dialog.
 - Right-click an object in the list for Rename, Delete, Properties and Toggle Animation; double-click it to centre the camera on it.
 - The wheel zooms the camera.
+
+## Web app
+
+The same viewer runs in the browser: the shape generators, the object transform (scale and rotate about the centre, then
+translate), the physics step and pyqtgraph's orbit camera are ported to JavaScript (`web/static/`) and tested against
+numbers from the Python code. The static site published to GitHub Pages is the full viewer; the local app adds a Python
+API (the loader catalogue, shapes built by `wireframe.py` for cross-checking, and the Gyroid at any resolution).
+
+```
+pip install -r requirements-web.txt
+python run_web.py                          # http://127.0.0.1:8119
+python -m pytest -q tests/                 # web, engine and desktop regression tests (offscreen Qt)
+node web/static/engine.test.mjs            # JS engine vs tests/fixtures/engine_fixture.json
+python scripts/build_static.py --out site  # static site, as published by .github/workflows/pages.yml
+```
+
+Pages: **Viewer** (load shapes, drag to rotate an object or orbit the camera, wheel / buttons to zoom, per-object spin,
+Play for gravity and bounce, faces / edges / vertices with colours and sizes, OBJ / JSON open and save), **Shapes** (every
+generator drawn live), **Cross-check** (JS vs Python, shape by shape) and **About**.
+
+| Home | Viewer |
+|---|---|
+| ![Home page](docs/img/home.png) | ![Viewer with a Klein bottle](docs/img/viewer.png) |
+| **Shapes** | **Cross-check** |
+| ![Shapes gallery](docs/img/shapes.png) | ![JS vs Python cross-check](docs/img/check.png) |
 
 ## Future Goals
 

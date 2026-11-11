@@ -11,6 +11,8 @@ import pyqtgraph.opengl as gl
 import numpy as np
 from wireframe import Wireframe
 from shape_loader_dialog import ShapeLoaderDialog
+from scene_math import physics_step, transform_vertices
+import shape_catalog as catalog
 
 import numpy as np
 
@@ -27,8 +29,8 @@ class SceneObject:
         self.edge_item = None
         self.vertex_item = None
         self.center = self.calculate_center()
-        self.original_color = (0.7, 0.7, 0.7, 1.0)  # Light gray
-        self.hover_color = (1.0, 0.0, 0.0, 1.0)  # Bright red
+        self.original_color = catalog.OBJECT_COLOR  # Light gray
+        self.hover_color = catalog.HOVER_COLOR  # Bright red
         self.current_color = self.original_color
         # New properties
         self.name = "Unnamed Object"
@@ -106,24 +108,8 @@ class SceneObject:
         return np.mean(self.wireframe.vertices, axis=0)
 
     def get_transformed_vertices(self):
-        # Apply scale
-        scaled_vertices = (self.wireframe.vertices - self.center) * self.scale + self.center
-
-        # Apply rotation
-        rotation_x = np.array([[1, 0, 0],
-                               [0, np.cos(self.rotation[0]), -np.sin(self.rotation[0])],
-                               [0, np.sin(self.rotation[0]), np.cos(self.rotation[0])]])
-        rotation_y = np.array([[np.cos(self.rotation[1]), 0, np.sin(self.rotation[1])],
-                               [0, 1, 0],
-                               [-np.sin(self.rotation[1]), 0, np.cos(self.rotation[1])]])
-        rotation_z = np.array([[np.cos(self.rotation[2]), -np.sin(self.rotation[2]), 0],
-                               [np.sin(self.rotation[2]), np.cos(self.rotation[2]), 0],
-                               [0, 0, 1]])
-        rotation_matrix = np.dot(rotation_z, np.dot(rotation_y, rotation_x))
-        rotated_vertices = np.dot(scaled_vertices - self.center, rotation_matrix.T) + self.center
-
-        # Apply translation
-        return rotated_vertices + self.position
+        """Scale and rotate about the centre, then translate (scene_math.transform_vertices)."""
+        return transform_vertices(self.wireframe.vertices, self.center, self.scale, self.rotation, self.position)
 
     def update_center(self):
         self.center = self.calculate_center()
@@ -131,24 +117,7 @@ class SceneObject:
 
     def apply_transformation(self):
         if self.mesh_item:
-            # Apply scale
-            scaled_vertices = (self.wireframe.vertices - self.center) * self.scale + self.center
-
-            # Apply rotation
-            rotation_x = np.array([[1, 0, 0],
-                                   [0, np.cos(self.rotation[0]), -np.sin(self.rotation[0])],
-                                   [0, np.sin(self.rotation[0]), np.cos(self.rotation[0])]])
-            rotation_y = np.array([[np.cos(self.rotation[1]), 0, np.sin(self.rotation[1])],
-                                   [0, 1, 0],
-                                   [-np.sin(self.rotation[1]), 0, np.cos(self.rotation[1])]])
-            rotation_z = np.array([[np.cos(self.rotation[2]), -np.sin(self.rotation[2]), 0],
-                                   [np.sin(self.rotation[2]), np.cos(self.rotation[2]), 0],
-                                   [0, 0, 1]])
-            rotation_matrix = np.dot(rotation_z, np.dot(rotation_y, rotation_x))
-            rotated_vertices = np.dot(scaled_vertices - self.center, rotation_matrix.T) + self.center
-
-            # Apply translation
-            translated_vertices = rotated_vertices + self.position
+            translated_vertices = self.get_transformed_vertices()
 
             self.mesh_item.setMeshData(vertexes=translated_vertices, faces=self.wireframe.triangles())
 
@@ -193,19 +162,8 @@ class Scene:
 
     def update_physics(self, dt):
         for obj in self.objects:
-            # Update position
-            obj.position += obj.velocity * dt
-
-            # Update rotation
-            obj.rotation += obj.angular_velocity * dt
-
-            # Apply simple gravity
-            obj.velocity[1] -= 9.8 * dt  # Assuming Y is up
-
-            # Simple ground collision
-            if obj.position[1] < 0:
-                obj.position[1] = 0
-                obj.velocity[1] = -obj.velocity[1] * 0.8  # Bounce with damping
+            # integrate, simple gravity (Y is up), bounce with damping at y = 0: see scene_math.physics_step
+            physics_step(obj.position, obj.velocity, obj.rotation, obj.angular_velocity, dt)
 
     def apply_transformations(self):
         for obj in self.objects:
@@ -234,18 +192,19 @@ class DisplayOptionsDialog(QDialog):
         self.show_edges = QCheckBox("Show Edges")
         self.show_vertices = QCheckBox("Show Vertices")
 
-        self.face_color_btn = ColorButton(QColor(200, 200, 200))
-        self.edge_color_btn = ColorButton(QColor(0, 0, 0))
-        self.vertex_color_btn = ColorButton(QColor(255, 0, 0))
+        d = catalog.DISPLAY
+        self.face_color_btn = ColorButton(QColor(*d["face_color"]))
+        self.edge_color_btn = ColorButton(QColor(*d["edge_color"]))
+        self.vertex_color_btn = ColorButton(QColor(*d["vertex_color"]))
 
         self.edge_width = QSpinBox()
-        self.edge_width.setRange(1, 10)
-        self.edge_width.setValue(1)
+        self.edge_width.setRange(*d["edge_width"][:2])
+        self.edge_width.setValue(d["edge_width"][2])
         self.edge_width.setPrefix("Edge Width: ")
 
         self.vertex_size = QSpinBox()
-        self.vertex_size.setRange(1, 20)
-        self.vertex_size.setValue(5)
+        self.vertex_size.setRange(*d["vertex_size"][:2])
+        self.vertex_size.setValue(d["vertex_size"][2])
         self.vertex_size.setPrefix("Vertex Size: ")
 
         layout.addWidget(self.show_faces)
@@ -461,9 +420,9 @@ class WireframeViewer(QMainWindow):
 
 
     def setup_display_options(self):
-        self.display_options.show_faces.setChecked(True)
-        self.display_options.show_edges.setChecked(True)
-        self.display_options.show_vertices.setChecked(False)
+        self.display_options.show_faces.setChecked(catalog.DISPLAY["show_faces"])
+        self.display_options.show_edges.setChecked(catalog.DISPLAY["show_edges"])
+        self.display_options.show_vertices.setChecked(catalog.DISPLAY["show_vertices"])
         self.display_options.face_color_btn.clicked.connect(lambda: self.change_color('face'))
         self.display_options.edge_color_btn.clicked.connect(lambda: self.change_color('edge'))
         self.display_options.vertex_color_btn.clicked.connect(lambda: self.change_color('vertex'))
@@ -481,16 +440,16 @@ class WireframeViewer(QMainWindow):
         translation_group = QGroupBox("Translation")
         translation_layout = QVBoxLayout()
         translation_group.setLayout(translation_layout)
-        self.translate_x = self.create_labeled_slider("X", -5, 5, 0, 0.1, translation_layout)
-        self.translate_y = self.create_labeled_slider("Y", -5, 5, 0, 0.1, translation_layout)
-        self.translate_z = self.create_labeled_slider("Z", -5, 5, 0, 0.1, translation_layout)
+        self.translate_x = self.create_labeled_slider("X", *catalog.TRANSLATION_SLIDER, translation_layout)
+        self.translate_y = self.create_labeled_slider("Y", *catalog.TRANSLATION_SLIDER, translation_layout)
+        self.translate_z = self.create_labeled_slider("Z", *catalog.TRANSLATION_SLIDER, translation_layout)
         transform_layout.addWidget(translation_group)
 
         # Scale control
         scale_group = QGroupBox("Scale")
         scale_layout = QVBoxLayout()
         scale_group.setLayout(scale_layout)
-        self.scale_slider = self.create_labeled_slider("Scale", 0.1, 2, 1, 0.1, scale_layout)
+        self.scale_slider = self.create_labeled_slider("Scale", *catalog.SCALE_SLIDER, scale_layout)
         transform_layout.addWidget(scale_group)
 
         layout.addLayout(transform_layout)

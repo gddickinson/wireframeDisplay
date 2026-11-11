@@ -1,5 +1,4 @@
 import numpy as np
-import pyqtgraph.opengl as gl
 from math import pi, sin, cos, sqrt
 import json
 from letter_definitions import ALL_CHARACTERS
@@ -24,6 +23,7 @@ class Wireframe:
         return triangulate(self.faces)
 
     def create_mesh_item(self, draw_faces=True, draw_edges=True):
+        import pyqtgraph.opengl as gl  # imported here so the shape code works without Qt (web API, tests)
         tris = self.triangles()
         colors = np.ones((len(tris), 4), dtype=np.float32) if tris is not None else None
         self.mesh_item = gl.GLMeshItem(
