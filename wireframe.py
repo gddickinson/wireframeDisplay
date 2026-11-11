@@ -388,7 +388,7 @@ class Wireframe:
         elif shape_type == 'Klein Bottle':
             return cls.create_klein_bottle(u_res, v_res)
         elif shape_type == 'Trefoil Knot':
-            return cls.create_trefoil_knot(u_res, v_res)
+            return cls.create_trefoil_knot(u_res)  # v_res does not apply: the tube keeps its default radius
         elif shape_type == 'Helicoid':
             return cls.create_helicoid(u_res, v_res)
         elif shape_type == 'Catenoid':
