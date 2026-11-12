@@ -30,12 +30,26 @@ ports 24 of 25 generators, text, transform, physics, camera and OBJ / JSON; the 
 **Results:** `pytest tests/` 55 passed; `tests/test_web.py` 36 passed; node engine 36 checks passed; static build
 27 API files, 1.1 MB; screenshots.py --static on all routes ok, phone overflow 0 px; run_web.py on 8119 + --base ok.
 
-**Needs George's decision (not changed):**
-- Text: letters are 12-18 units wide but `create_text` spaces them 1.5 apart, so "AB" overlaps; only A, B, 0, ! exist.
-- Koch Snowflake starts from (origin, two points at 120 deg) rather than an equilateral triangle, and is one concave face.
-- "Jerusalem Cube" keeps the 8 corner cubes (Cantor dust), not a Jerusalem cube; Menger sub-cubes are placed relative
-  to the origin (geometry is distinct but offset); Gyroid vertices are in voxel units (0-29), much larger than others.
-- Physics: `update_scene`'s physics version is commented out; gravity acts on -y while pyqtgraph's camera has z up.
-- Display Options: only Show Faces is wired (edges / vertices / colours / sizes do nothing on the desktop).
+**Needs George's decision:** see the follow-up below (text, Koch, Jerusalem, Gyroid and physics now fixed).
+- Display Options: only Show Faces is wired on the desktop (edges / vertices / colours / sizes do nothing).
 - `WireframeViewer.load_shape` references a non-existent `shape_combo` (dead code); MRI / super-res loaders missing.
-- `wireframe.py` (841 lines) and `wireframe_viewer.py` (~990 lines) exceed the 500-line budget (pre-existing; not split).
+- `wireframe.py` and `wireframe_viewer.py` exceed the 500-line budget (pre-existing; not split).
+- Menger sub-cubes are placed relative to the origin (distinct but offset from the parent cube).
+
+## 2026-11-11 (follow-up): George: "fix any other problems you come across"
+
+Fast-forwarded `web-interface` to `main`, then five fixes, each with failing-first tests and Python and JS kept identical
+(engine fixture regenerated, node test passing):
+- Text: glyphs advance by their width + a gap of 4 (a space by 10) instead of a fixed 1.5 (letters overlapped); A-Z, 0-9
+  and ! defined. One table, `letter_glyphs.json` (from `scripts/make_glyphs.py`: George's A, B, ! kept, the solid-block 0
+  and all other characters drawn from strokes), read by `letter_definitions.py` and served to the web viewer.
+- Koch snowflake: equilateral seed traversed so bumps point outwards, and each peak at the apex of an equilateral bump
+  (it sat over the first third point): 3*4^n equal segments.
+- Jerusalem cube: 8 corner cubes (k = sqrt2 - 1) + 12 edge cubes (k^2) per cube, 20^n cubes (was 8 corner cubes of 1/3:
+  Cantor dust). Browser cap 3 iterations, gallery 2.
+- Gyroid: world coordinates in [-pi, pi] (were voxel indices) and x / y no longer swapped (meshgrid 'xy' indexing).
+- Desktop Play now runs Scene.update_physics; gravity along -z (the camera's up axis), bounce at z = 0; same in the JS.
+
+Checks: `pytest tests/` 72 passed; node engine 38 checks passed (max vertex diff 5.1e-13); screenshots --static on every
+route ok, phone overflow 0 px; run_web.py on 8119 + --base ok (stopped); desktop offscreen run ok; README screenshots
+refreshed.
