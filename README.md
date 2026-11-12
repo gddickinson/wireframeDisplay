@@ -78,6 +78,10 @@ generator drawn live), **Cross-check** (JS vs Python, shape by shape) and **Abou
 | **Shapes** | **Cross-check** |
 | ![Shapes gallery](docs/img/shapes.png) | ![JS vs Python cross-check](docs/img/check.png) |
 
+## Code layout
+
+See [INTERFACE.md](INTERFACE.md) for a map of the modules (desktop viewer, Qt-free shape and scene code, web app).
+
 ## Future Goals
 
 - Enhanced Physics Simulation: Implement more complex physics interactions and constraints.

@@ -31,9 +31,8 @@ ports 24 of 25 generators, text, transform, physics, camera and OBJ / JSON; the 
 27 API files, 1.1 MB; screenshots.py --static on all routes ok, phone overflow 0 px; run_web.py on 8119 + --base ok.
 
 **Needs George's decision:** see the follow-up below (text, Koch, Jerusalem, Gyroid and physics now fixed).
-- Display Options: only Show Faces is wired on the desktop (edges / vertices / colours / sizes do nothing).
-- `WireframeViewer.load_shape` references a non-existent `shape_combo` (dead code); MRI / super-res loaders missing.
-- `wireframe.py` and `wireframe_viewer.py` exceed the 500-line budget (pre-existing; not split).
+- `WireframeViewer.load_shape` references a non-existent `shape_combo` (dead code).
+- Super-resolution loading: removed (no format defined here); wireframe_display's `loadNIKONFile` (tab-separated Nikon N-STORM export, Xc / Yc / Zc columns) is a candidate format.
 - Menger sub-cubes are placed relative to the origin (distinct but offset from the parent cube).
 
 ## 2026-11-11 (follow-up): George: "fix any other problems you come across"
@@ -53,3 +52,16 @@ Fast-forwarded `web-interface` to `main`, then five fixes, each with failing-fir
 Checks: `pytest tests/` 72 passed; node engine 38 checks passed (max vertex diff 5.1e-13); screenshots --static on every
 route ok, phone overflow 0 px; run_web.py on 8119 + --base ok (stopped); desktop offscreen run ok; README screenshots
 refreshed.
+
+## 2026-11-11 (second follow-up)
+
+- Fix Display Options: every option now reaches the GL items (faces GLMeshItem in the face colour, polygon edges
+  GLLinePlotItem with colour / width, vertices GLScatterPlotItem with colour / size); face-less shapes show vertices.
+- Fix MRI loading: `Wireframe.load_mri` (nibabel 5.5.0, first volume of 4D files, Otsu threshold, marching cubes,
+  affine to scanner mm). The super-resolution button (no file format anywhere in this repo) was removed; README corrected.
+- Split: wireframe.py -> wireframe.py + shapes_basic / shapes_parametric / shapes_fractal; wireframe_viewer.py ->
+  wireframe_viewer.py + scene_objects / viewer_dialogs / viewer_mouse / viewer_files. All .py files < 500 lines.
+
+Checks: `pytest tests/` 81 passed; node engine 38 checks passed; screenshots --static (all routes) ok, phone 0 px;
+run_web.py on 8119 + --base ok (stopped); `python wireframe_viewer.py` runs offscreen. GL drawing itself cannot be
+seen offscreen: the tests check the items' visibility, colours, widths, sizes and positions.
