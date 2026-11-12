@@ -6,8 +6,8 @@ import { loadSetup, loadShape, makeObject, frameScene } from './scene.js';
 
 route('shapes', async () => {
   const { cat } = await loadSetup();
-  const items = cat.shapes.concat([{ kind: 'text', name: 'AB0!', params: [], slug: 'text' }]);
-  const caption = s => s.kind === 'parametric' ? `U × V = ${s.params[0]} × ${s.params[1]}` : s.kind === 'fractal' ? `${s.params[0]} iterations, size ${s.params[1]}` : s.kind === 'text' ? 'every defined character' : 'loader defaults';
+  const items = cat.shapes.concat([{ kind: 'text', name: 'WIRE 3D', params: [], slug: 'text' }]);
+  const caption = s => s.kind === 'parametric' ? `U × V = ${s.params[0]} × ${s.params[1]}` : s.kind === 'fractal' ? `${s.params[0]} iterations, size ${s.params[1]}` : s.kind === 'text' ? 'Text Shapes: "WIRE 3D"' : 'loader defaults';
   app().innerHTML = `<p class="kicker">Shape loader</p><h1 class="glow">Shapes</h1>
   <p class="lead">The ${cat.shapes.length} generators of the desktop shape loader plus text, each built in your browser by the JS port of
   <code>wireframe.py</code> (the Gyroid, which needs scikit-image's marching cubes, comes from the Python server). Click one to open it in the viewer.</p>

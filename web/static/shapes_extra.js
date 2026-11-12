@@ -169,18 +169,22 @@ export const FRACTALS = {
   'Pythagoras Tree 3D': pythagorasTree3d,
 };
 
-// Wireframe.create_text: letters is letter_definitions.ALL_CHARACTERS ({char: [vertices, faces]}, from the API).
-export function createText(text, letters, spacing = 1.5) {
-  const verts = [], faces = [];
+// Wireframe.create_text. table is letter_glyphs.json ({gap, space, glyphs: {char: {vertices, faces}}}, from the API),
+// the file letter_definitions.py reads: each glyph advances by its width plus gap, a space by space.
+export function createText(text, table) {
+  const verts = [], faces = [], G = table.glyphs;
   let offset = 0;
   for (const ch of text.toUpperCase()) {
-    if (ch === ' ') { offset += spacing; continue; }
-    if (!letters[ch]) continue;
-    const [v, f] = letters[ch], base = verts.length;
-    verts.push(...v.map(p => [f32(f32(p[0]) + f32(offset)), f32(p[1]), f32(p[2])]));
-    faces.push(...f.map(face => face.map(i => i + base)));
-    offset += spacing;
+    if (ch === ' ') { offset += table.space; continue; }
+    if (!G[ch]) continue;
+    const v = G[ch].vertices.map(p => p.map(f32)), base = verts.length;
+    let x0 = Infinity, x1 = -Infinity;
+    for (const p of v) { x0 = Math.min(x0, p[0]); x1 = Math.max(x1, p[0]); }
+    const dx = f32(offset - x0);
+    verts.push(...v.map(p => [f32(p[0] + dx), p[1], p[2]]));
+    faces.push(...G[ch].faces.map(face => face.map(i => i + base)));
+    offset += (x1 - x0) + table.gap;
   }
-  if (!verts.length) throw new Error(`No supported characters in "${text}"; defined: ${Object.keys(letters).sort().join(' ')}`);
+  if (!verts.length) throw new Error(`No supported characters in "${text}"; defined: ${Object.keys(G).sort().join(' ')}`);
   return makeShape(verts, faces);
 }

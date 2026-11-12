@@ -26,7 +26,7 @@ if str(ROOT) not in sys.path:
 import camera  # noqa: E402
 import scene_math  # noqa: E402
 import shape_catalog as cat  # noqa: E402
-from letter_definitions import ALL_CHARACTERS  # noqa: E402
+from letter_definitions import ALL_CHARACTERS, GLYPH_TABLE  # noqa: E402
 from wireframe import Wireframe  # noqa: E402
 
 STATIC = Path(__file__).resolve().parent / "static"
@@ -104,7 +104,7 @@ def catalog():
         "translation_slider": cat.TRANSLATION_SLIDER, "scale_slider": cat.SCALE_SLIDER,
         "property_ranges": cat.PROPERTY_RANGES,
         "camera": camera.DEFAULTS, "physics": {"gravity": scene_math.GRAVITY, "restitution": scene_math.RESTITUTION},
-        "letters": {k: [np.asarray(v).tolist(), np.asarray(f).tolist()] for k, (v, f) in ALL_CHARACTERS.items()},
+        "glyphs": GLYPH_TABLE,  # letter_glyphs.json, the same table letter_definitions.py reads
     }
 
 

@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 import camera  # noqa: E402
-from letter_definitions import ALL_CHARACTERS  # noqa: E402
+from letter_definitions import GLYPH_TABLE  # noqa: E402
 from scene_math import physics_step, rotation_matrix, transform_vertices  # noqa: E402
 from wireframe import Wireframe  # noqa: E402
 
@@ -33,7 +33,7 @@ SHAPE_CASES += [("fractal", n, [2, 1.5]) for n in ["Sierpinski Triangle", "Koch 
                                                    "Apollonian Gasket", "Jerusalem Cube", "Sierpinski Tetrahedron",
                                                    "Pythagoras Tree 3D"]]
 SHAPE_CASES += [("fractal", "Koch Snowflake", [3, 1.0]), ("fractal", "Pythagoras Tree 3D", [4, 1.0]),
-                ("text", "AB 0!?", None)]
+                ("text", "AB 0!?", None), ("text", "Hello World 2026", None), ("text", "QUICK BROWN FOX 1789", None)]
 TRANSFORMS = [  # (shape, scale, rotation, position)
     ("Cube", [1, 1, 1], [0, 0, 0], [0, 0, 0]),
     ("Torus", [1.5, 0.5, 2.0], [0.3, -1.2, 2.5], [1.0, -2.0, 0.5]),
@@ -105,9 +105,8 @@ def cameras():
 
 
 def fixture():
-    letters = {k: [np.asarray(v).tolist(), np.asarray(f).tolist()] for k, (v, f) in ALL_CHARACTERS.items()}
     return {"shapes": shapes(), "transforms": transforms(), "physics": physics(), "camera": cameras(),
-            "letters": letters}
+            "glyphs": GLYPH_TABLE}
 
 
 def main():

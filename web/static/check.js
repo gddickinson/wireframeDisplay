@@ -25,7 +25,7 @@ route('check', async () => {
         row.innerHTML = `<td>${esc(s.name)}</td><td class="mono">${py.params.join(', ')}</td><td>${py.vertices.length}</td><td>${py.faces.length}</td><td>-</td><td class="mute">Python only (marching cubes)</td>`;
         continue;
       }
-      const js = buildShape(s.kind, s.name, s.params, cat.letters);
+      const js = buildShape(s.kind, s.name, s.params, cat.glyphs);
       let d = 0;
       js.vertices.forEach((v, i) => v.forEach((x, k) => { d = Math.max(d, Math.abs(x - py.vertices[i][k])); }));
       const same = js.vertices.length === py.vertices.length && JSON.stringify(js.faces) === JSON.stringify(py.faces) && d < 1e-6;

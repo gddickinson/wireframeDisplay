@@ -8,7 +8,7 @@ This project is a Python-based 3D visualization tool that allows users to create
 
 ## Features
 
-- **3D Shape Generation**: 11 basic geometries (cube, sphere, Platonic solids, torus, cylinder, cone, pyramid, prism), 7 parametric surfaces (Mobius strip, Klein bottle, trefoil knot, helicoid, catenoid, sine surface, gyroid), 7 fractals (Sierpinski triangle and tetrahedron, Koch snowflake, Menger sponge, Apollonian gasket, Jerusalem cube, 3D Pythagoras tree) and text from the characters in `letter_definitions.py` (currently A, B, 0 and !).
+- **3D Shape Generation**: 11 basic geometries (cube, sphere, Platonic solids, torus, cylinder, cone, pyramid, prism), 7 parametric surfaces (Mobius strip, Klein bottle, trefoil knot, helicoid, catenoid, sine surface, gyroid), 7 fractals (Sierpinski triangle and tetrahedron, Koch snowflake, Menger sponge, Apollonian gasket, Jerusalem cube, 3D Pythagoras tree) and text in A-Z, 0-9 and ! (glyphs in `letter_glyphs.json`, read by `letter_definitions.py` and the web viewer; written by `scripts/make_glyphs.py`).
 - **Data Visualization** (planned): the shape loader has MRI and super-resolution buttons, but their loaders (`Wireframe.load_mri`, `Wireframe.load_super_resolution`) are not written yet, so they report an error.
 - **Scene Management**: Add multiple objects to a scene; rename, delete, edit properties (mass, scale, rotation speed) from the list's right-click menu.
 - **Real-time Transformations**: translation and scale sliders for the whole scene; drag an object to rotate it (Ctrl + drag to move it).

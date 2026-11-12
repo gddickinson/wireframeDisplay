@@ -66,7 +66,7 @@ def test_catalog_comes_from_python():
     d = client.get("/api/catalog").json()
     assert [g["names"] for g in d["groups"]] == [cat.BASIC_SHAPES, cat.PARAMETRIC_SHAPES, cat.FRACTALS]
     assert d["resolution"] == list(cat.PARAM_RESOLUTION) and d["camera"]["fov"] == 60
-    assert sorted(d["letters"]) == ["!", "0", "A", "B"] and d["physics"]["gravity"] == 9.8
+    assert len(d["glyphs"]["glyphs"]) == 37 and d["glyphs"]["gap"] > 0 and d["physics"]["gravity"] == 9.8
     assert len(d["shapes"]) == 25 and sum(s["server_only"] for s in d["shapes"]) == 1
 
 
@@ -83,12 +83,13 @@ def test_shape_matches_generator():
 
 def test_text_endpoint():
     assert len(client.get("/api/text?t=AB").json()["vertices"]) == 40
-    assert client.get("/api/text?t=xyz").status_code == 422
+    assert len(client.get("/api/text?t=HI").json()["vertices"]) == 6 * 8
+    assert client.get("/api/text?t=%3F%23").status_code == 422
 
 
 def test_info_counts():
     d = client.get("/api/info").json()
-    assert (d["basic"], d["parametric"], d["fractals"], d["characters"], d["shapes"]) == (11, 7, 7, 4, 25)
+    assert (d["basic"], d["parametric"], d["fractals"], d["characters"], d["shapes"]) == (11, 7, 7, 37, 25)
 
 
 def test_js_fixture_is_current():
@@ -97,7 +98,7 @@ def test_js_fixture_is_current():
     import make_engine_fixture
     now = json.loads(json.dumps(make_engine_fixture.fixture()))
     emb = json.loads((ROOT / "tests" / "fixtures" / "engine_fixture.json").read_text())
-    assert emb["letters"] == now["letters"]
+    assert emb["glyphs"] == now["glyphs"]
     for a, b in zip(emb["shapes"], now["shapes"], strict=True):
         assert (a["kind"], a["name"], a["params"], a["faces"]) == (b["kind"], b["name"], b["params"], b["faces"])
         assert np.allclose(a["vertices"], b["vertices"], rtol=1e-9, atol=1e-12)

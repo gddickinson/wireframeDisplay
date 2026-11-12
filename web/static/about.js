@@ -18,8 +18,9 @@ route('about', async () => {
   (tetrahedron, octahedron, icosahedron, sphere, torus, sine surface) and the same letter-A geometry, but no code.</p>
 
   <h2>Shapes</h2>
-  <p>${info.shapes} generators in three groups, plus text built from the ${info.characters} characters defined in
-  <code>letter_definitions.py</code> (${esc(Object.keys(cat.letters).sort().join(' '))}; other characters are skipped).</p>
+  <p>${info.shapes} generators in three groups, plus text built from the ${info.characters} glyphs in <code>letter_glyphs.json</code>
+  (A-Z, 0-9 and !; other characters are skipped), which <code>letter_definitions.py</code> and this site both read. Each glyph
+  advances by its width plus a gap of ${cat.glyphs.gap}; a space advances by ${cat.glyphs.space}.</p>
   <div class="scroll"><table><tr><th>Group</th><th>Shapes</th><th>Parameters (desktop loader)</th></tr>
   ${list(cat.groups, g => `<tr><td>${esc(g.title)}</td><td>${esc(g.names.join(', '))}</td><td>${g.kind === 'parametric' ? `U, V resolution ${cat.resolution[0]}-${cat.resolution[1]} (default ${cat.resolution[2]})`
     : g.kind === 'fractal' ? `iterations ${cat.iterations[0]}-${cat.iterations[1]} (default ${cat.iterations[2]}), size ${cat.size[0]}-${cat.size[1]}` : 'none'}</td></tr>`)}</table></div>

@@ -1,7 +1,7 @@
 import numpy as np
 from math import pi, sin, cos, sqrt
 import json
-from letter_definitions import ALL_CHARACTERS
+from letter_definitions import ALL_CHARACTERS, GAP, SPACE
 from mesh_utils import face_array, triangulate
 
 class Wireframe:
@@ -234,19 +234,23 @@ class Wireframe:
         return cls(vertices, faces)
 
     @classmethod
-    def create_text(cls, text, spacing=1.5):
+    def create_text(cls, text, spacing=GAP):
+        """Glyphs from letter_definitions placed left to right: each advances by its width plus `spacing`,
+        a space by SPACE; undefined characters are skipped."""
         text = text.upper()
         char_shapes = []
-        offset = 0
+        offset = 0.0
         for char in text:
             if char == ' ':
-                offset += spacing
+                offset += SPACE
                 continue
             if char in ALL_CHARACTERS:
                 char_shape = cls.create_character(char)
-                char_shape.translate(offset, 0, 0)
+                x0 = float(char_shape.vertices[:, 0].min())
+                width = float(char_shape.vertices[:, 0].max()) - x0
+                char_shape.translate(offset - x0, 0, 0)
                 char_shapes.append(char_shape)
-                offset += spacing
+                offset += width + spacing
 
         if not char_shapes:
             raise ValueError(f"No supported characters in {text!r}; defined: {' '.join(sorted(ALL_CHARACTERS))}")

@@ -8,11 +8,11 @@ const f32 = Math.fround;
 const rad = d => d * PI / 180;
 
 // kind: 'basic' | 'parametric' | 'fractal' | 'text'; params as the shape loader emits them.
-export function buildShape(kind, name, params = [], letters = {}) {
+export function buildShape(kind, name, params = [], glyphs = { glyphs: {} }) {
   if (kind === 'basic' && BASIC[name]) return BASIC[name]();
   if (kind === 'parametric' && PARAMETRIC[name]) return PARAMETRIC[name](...params);
   if (kind === 'fractal' && FRACTALS[name]) return FRACTALS[name](...params);
-  if (kind === 'text') return createText(name, letters);
+  if (kind === 'text') return createText(name, glyphs);
   throw new Error(`Unknown ${kind} shape: ${name}`);
 }
 

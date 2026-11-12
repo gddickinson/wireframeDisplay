@@ -13,7 +13,7 @@ let checks = 0, worst = 0;
 
 // 1. every shape generator: same vertex count and order, same faces; vertices are float32 in both
 for (const s of FIX.shapes) {
-  const js = buildShape(s.kind, s.name, s.params || [], FIX.letters);
+  const js = buildShape(s.kind, s.name, s.params || [], FIX.glyphs);
   const what = `${s.kind} ${s.name} ${JSON.stringify(s.params)}`;
   assert.equal(js.vertices.length, s.vertices.length, `${what}: vertex count`);
   assert.deepEqual(js.faces, s.faces, `${what}: faces`);
@@ -64,7 +64,7 @@ assert.deepEqual(back.faces, tor.faces); assert.deepEqual(pos0(back.vertices), p
 const j = parseJson(toJson(tor.vertices, tor.faces));
 assert.deepEqual(j.faces, tor.faces);
 assert.equal(edgesFromFaces(buildShape('basic', 'Dodecahedron').faces).length, 30, 'dodecahedron has 30 edges');
-assert.throws(() => buildShape('text', 'HELLO', [], FIX.letters), /No supported characters/);
+assert.throws(() => buildShape('text', '?#%', [], FIX.glyphs), /No supported characters/);
 checks++;
 
 console.log(`engine: ${checks} checks passed (${FIX.shapes.length} shapes, max vertex diff ${worst.toExponential(1)}, ` +

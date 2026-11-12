@@ -36,12 +36,12 @@ def test_animated_object_updates(viewer):
 
 
 def test_text_without_supported_characters_is_rejected(viewer):
-    viewer.on_shape_loaded(("text", "HELLO"))  # only A, B, 0 and ! are defined
+    viewer.on_shape_loaded(("text", "?#%"))  # no glyphs for these
     assert viewer.scene.objects == [] and viewer.object_list.count() == 0
-    assert viewer.msgs and "HELLO" in viewer.msgs[-1][1]
+    assert viewer.msgs and "?#%" in viewer.msgs[-1][1]
     viewer.update_scene()  # used to raise on the half-added empty object every frame
     with pytest.raises(ValueError):
-        Wireframe.create_text("xyz")
+        Wireframe.create_text("@@")
 
 
 def test_save_and_open(viewer, tmp_path, monkeypatch):

@@ -25,7 +25,7 @@ export async function loadShape(kind, name, params, cat) {
     const d = await api(`/shape/${slug}` + (u === def && v === def ? '' : `?u=${u}&v=${v}`));
     return { vertices: d.vertices, faces: d.faces };
   }
-  return buildShape(kind, name, params, cat.letters);
+  return buildShape(kind, name, params, cat.glyphs);
 }
 
 // The loader names objects "<kind>: <info>" (WireframeViewer.on_shape_loaded).

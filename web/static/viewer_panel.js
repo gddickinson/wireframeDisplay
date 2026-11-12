@@ -21,7 +21,7 @@ export function panelHTML(cat) {
   <div id="namebox"><label for="shape">Shape</label><select id="shape"></select></div>
   <div class="props" id="pparams">${num('pu', 'U resolution', rdef, rmin, rmax, 1)}${num('pv', 'V resolution', rdef, rmin, rmax, 1)}</div>
   <div class="props" id="fparams">${num('fit', 'Iterations', idef, imin, 8, 1)}${num('fsz', 'Size', sdef, smin, smax, sstep)}</div>
-  <div id="tparams"><label for="txt">Text (defined: ${esc(Object.keys(cat.letters).sort().join(' '))})</label><input id="txt" maxlength="40" value="AB0!"></div>
+  <div id="tparams"><label for="txt">Text (A-Z, 0-9 and !)</label><input id="txt" maxlength="40" value="Hello 3D"></div>
   <p class="small mute" id="capnote"></p>
   <button id="load">Load shape</button>
   <h3>File</h3>
