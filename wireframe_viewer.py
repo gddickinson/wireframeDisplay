@@ -10,11 +10,33 @@ from PyQt5.QtGui import QColor
 import pyqtgraph.opengl as gl
 import numpy as np
 from wireframe import Wireframe
+from mesh_utils import edges_from_faces
 from shape_loader_dialog import ShapeLoaderDialog
 from scene_math import physics_step, transform_vertices
 import shape_catalog as catalog
 
 import numpy as np
+
+
+def _rgba(qcolor):
+    return (qcolor.redF(), qcolor.greenF(), qcolor.blueF(), 1.0)
+
+
+def default_style():
+    """Display style before the options dialog is read: shape_catalog defaults."""
+    d = catalog.DISPLAY
+    return {"show_faces": d["show_faces"], "show_edges": d["show_edges"], "show_vertices": d["show_vertices"],
+            "face_color": catalog.OBJECT_COLOR, "edge_color": tuple(c / 255 for c in d["edge_color"]) + (1.0,),
+            "vertex_color": tuple(c / 255 for c in d["vertex_color"]) + (1.0,),
+            "edge_width": d["edge_width"][2], "vertex_size": d["vertex_size"][2]}
+
+
+def display_style(options):
+    """The settings of a DisplayOptionsDialog as plain values (colours as RGBA 0-1)."""
+    return {"show_faces": options.show_faces.isChecked(), "show_edges": options.show_edges.isChecked(),
+            "show_vertices": options.show_vertices.isChecked(), "face_color": _rgba(options.face_color_btn.color),
+            "edge_color": _rgba(options.edge_color_btn.color), "vertex_color": _rgba(options.vertex_color_btn.color),
+            "edge_width": options.edge_width.value(), "vertex_size": options.vertex_size.value()}
 
 
 class SceneObject:
@@ -86,20 +108,39 @@ class SceneObject:
             print("Mesh item is None, color not updated")
 
     def update_mesh(self, display_options):
+        """Rebuild the GL items: faces (GLMeshItem), polygon edges (GLLinePlotItem) and vertices (GLScatterPlotItem).
+        display_options is the DisplayOptionsDialog; None keeps the current style (animation / properties updates)."""
+        if display_options is not None:
+            self.style = display_style(display_options)
+        style = getattr(self, "style", None) or default_style()
+        if self.current_color != self.hover_color:
+            self.current_color = style["face_color"]
+        self.original_color = style["face_color"]
         transformed_vertices = self.get_transformed_vertices()
 
         if self.mesh_item is None:
-            #print("Creating new mesh item")
             self.mesh_item = gl.GLMeshItem(vertexes=transformed_vertices, faces=self.wireframe.triangles(),
-                                           smooth=True, drawEdges=True, edgeColor=(0, 0, 0, 1))
+                                           smooth=True, drawEdges=False)
             self.mesh_item.setColor(self.current_color)
+            self.edge_item = gl.GLLinePlotItem(mode='lines', antialias=True, glOptions='opaque')
+            self.vertex_item = gl.GLScatterPlotItem(pxMode=True, glOptions='opaque')
         else:
-            #print("Updating existing mesh item")
-            self.mesh_item.setMeshData(vertexes=transformed_vertices, faces=self.wireframe.triangles(), color=self.current_color)
+            self.mesh_item.setMeshData(vertexes=transformed_vertices, faces=self.wireframe.triangles(),
+                                       color=self.current_color)
+        self.set_item_geometry(transformed_vertices, style)
 
-        if display_options is not None:  # None: keep the current visibility (animation / properties updates)
-            self.mesh_item.setVisible(display_options.show_faces.isChecked())
-        #print(f"Mesh visibility set to: {display_options.show_faces.isChecked()}")
+        has_faces = self.wireframe.faces is not None and len(self.wireframe.faces) > 0
+        self.mesh_item.setVisible(style["show_faces"] and has_faces)
+        self.edge_item.setVisible(style["show_edges"] and has_faces)
+        self.vertex_item.setVisible(style["show_vertices"] or not has_faces)  # a point cloud is all there is to draw
+
+    def set_item_geometry(self, vertices, style):
+        """Move the edge and vertex items to the transformed vertices, with the current colours and sizes."""
+        if not hasattr(self, "_edges"):
+            self._edges = np.array(edges_from_faces(self.wireframe.faces), dtype=int).reshape(-1, 2)
+        segments = vertices[self._edges.ravel()] if len(self._edges) else np.zeros((2, 3))
+        self.edge_item.setData(pos=segments, color=style["edge_color"], width=style["edge_width"])
+        self.vertex_item.setData(pos=vertices, color=style["vertex_color"], size=style["vertex_size"])
 
     def get_center(self):
         return np.array(self.center) + np.array(self.position)
@@ -119,13 +160,10 @@ class SceneObject:
         if self.mesh_item:
             translated_vertices = self.get_transformed_vertices()
 
-            self.mesh_item.setMeshData(vertexes=translated_vertices, faces=self.wireframe.triangles())
-
-            if self.edge_item:
-                self.edge_item.setData(pos=translated_vertices)
-
-            if self.vertex_item:
-                self.vertex_item.setData(pos=translated_vertices)
+            self.mesh_item.setMeshData(vertexes=translated_vertices, faces=self.wireframe.triangles(),
+                                       color=self.current_color)
+            if self.edge_item is not None:
+                self.set_item_geometry(translated_vertices, getattr(self, "style", None) or default_style())
 
     def translate(self, dx, dy, dz):
         self.position += np.array([dx, dy, dz])
@@ -193,7 +231,7 @@ class DisplayOptionsDialog(QDialog):
         self.show_vertices = QCheckBox("Show Vertices")
 
         d = catalog.DISPLAY
-        self.face_color_btn = ColorButton(QColor(*d["face_color"]))
+        self.face_color_btn = ColorButton(QColor.fromRgbF(*catalog.OBJECT_COLOR))  # what objects are drawn in
         self.edge_color_btn = ColorButton(QColor(*d["edge_color"]))
         self.vertex_color_btn = ColorButton(QColor(*d["vertex_color"]))
 

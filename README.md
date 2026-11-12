@@ -12,7 +12,7 @@ This project is a Python-based 3D visualization tool that allows users to create
 - **Data Visualization** (planned): the shape loader has MRI and super-resolution buttons, but their loaders (`Wireframe.load_mri`, `Wireframe.load_super_resolution`) are not written yet, so they report an error.
 - **Scene Management**: Add multiple objects to a scene; rename, delete, edit properties (mass, scale, rotation speed) from the list's right-click menu.
 - **Real-time Transformations**: translation and scale sliders for the whole scene; drag an object to rotate it (Ctrl + drag to move it).
-- **Display Customization**: a Display Options dialog (faces, edges, vertices, colours, sizes); at present only "Show Faces" changes the view.
+- **Display Customization**: View > Display Options: show faces, edges (polygon outlines) and vertices, their colours, edge width and vertex size. Shapes without faces (Apollonian gasket) always show their vertices.
 - **Basic Physics Simulation**: Play runs `Scene.update_physics`: gravity along -z (the camera's up axis) and a damped bounce on the ground plane z = 0. Raise objects with the Z slider first.
 - **Animation**: per-object rotation at a set speed (right-click > Toggle Animation, speeds in Properties).
 - **File Operations**: open and save single objects as OBJ or JSON.

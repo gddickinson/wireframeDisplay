@@ -15,8 +15,8 @@ FRACTAL_ITERATIONS = (1, 8, 4)
 FRACTAL_SIZE = (0.1, 10.0, 1.0, 0.1)
 
 # DisplayOptionsDialog defaults (RGB 0-255) and ranges
-DISPLAY = {"show_faces": True, "show_edges": True, "show_vertices": False,
-           "face_color": (200, 200, 200), "edge_color": (0, 0, 0), "vertex_color": (255, 0, 0),
+DISPLAY = {"show_faces": True, "show_edges": True, "show_vertices": False,  # faces use OBJECT_COLOR
+           "edge_color": (0, 0, 0), "vertex_color": (255, 0, 0),
            "edge_width": (1, 10, 1), "vertex_size": (1, 20, 5)}
 # SceneObject colours (RGBA 0-1)
 OBJECT_COLOR = (0.7, 0.7, 0.7, 1.0)

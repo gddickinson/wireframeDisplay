@@ -41,8 +41,7 @@ route('about', async () => {
       against numbers from the Python (see <a href="#/check">Cross-check</a>). The Gyroid is built by the Python server.</li>
     <li>Faces are painted back to front on a canvas instead of with an OpenGL depth buffer; edges are polygon outlines (the desktop
       outlines the triangles OpenGL draws). "Shading" is a web-only light term; switch it off for the desktop's flat colour.</li>
-    <li>Differences from the desktop app as it stands: the Display Options edge, vertex, colour and size settings all work (in the desktop only
-      Show Faces is wired); shapes without faces (Apollonian gasket) show their vertices; dragging empty space orbits the camera
+    <li>Differences from the desktop app as it stands: dragging empty space orbits the camera
       (pyqtgraph's default, which the desktop's own mouse handlers replace). Fractal iterations are capped in the browser where they
       grow fastest (${esc(Object.entries(cat.web_iteration_caps).filter(([, c]) => c < 8).map(([n, c]) => `${n} ${c}`).join(', '))}).</li>
     <li>Web additions: Frame scene, camera buttons and keyboard control of the 3D view (arrow keys orbit, + / − zoom, F frames).</li>
