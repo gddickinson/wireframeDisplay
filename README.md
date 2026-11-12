@@ -9,7 +9,7 @@ This project is a Python-based 3D visualization tool that allows users to create
 ## Features
 
 - **3D Shape Generation**: 11 basic geometries (cube, sphere, Platonic solids, torus, cylinder, cone, pyramid, prism), 7 parametric surfaces (Mobius strip, Klein bottle, trefoil knot, helicoid, catenoid, sine surface, gyroid), 7 fractals (Sierpinski triangle and tetrahedron, Koch snowflake, Menger sponge, Apollonian gasket, Jerusalem cube, 3D Pythagoras tree) and text in A-Z, 0-9 and ! (glyphs in `letter_glyphs.json`, read by `letter_definitions.py` and the web viewer; written by `scripts/make_glyphs.py`).
-- **Data Visualization** (planned): the shape loader has MRI and super-resolution buttons, but their loaders (`Wireframe.load_mri`, `Wireframe.load_super_resolution`) are not written yet, so they report an error.
+- **Data Visualization**: Load MRI Data opens a NIfTI volume (.nii / .nii.gz, via nibabel) and shows its isosurface (marching cubes at Otsu's threshold, in scanner millimetres; 4D files use the first volume). Desktop only. (A super-resolution button had no defined file format and was removed.)
 - **Scene Management**: Add multiple objects to a scene; rename, delete, edit properties (mass, scale, rotation speed) from the list's right-click menu.
 - **Real-time Transformations**: translation and scale sliders for the whole scene; drag an object to rotate it (Ctrl + drag to move it).
 - **Display Customization**: View > Display Options: show faces, edges (polygon outlines) and vertices, their colours, edge width and vertex size. Shapes without faces (Apollonian gasket) always show their vertices.
@@ -23,7 +23,8 @@ This project is a Python-based 3D visualization tool that allows users to create
 - PyQt5
 - PyQtGraph
 - NumPy
-- SciPy and scikit-image (the Gyroid uses scikit-image's marching cubes)
+- SciPy and scikit-image (the Gyroid and MRI isosurfaces use scikit-image's marching cubes)
+- nibabel (MRI / NIfTI loading)
 
 ## Installation
 

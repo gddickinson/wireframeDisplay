@@ -688,8 +688,6 @@ class WireframeViewer(QMainWindow):
             return Wireframe.create_text(shape_info)
         elif shape_type == 'mri':
             return Wireframe.load_mri(shape_info)
-        elif shape_type == 'super_resolution':
-            return Wireframe.load_super_resolution(shape_info)
         else:
             raise ValueError(f"Unknown shape type: {shape_type}")
 
@@ -870,14 +868,6 @@ class WireframeViewer(QMainWindow):
             print(f"Debug - WireframeViewer: MRI data loaded successfully from {filename}")
         except Exception as e:
             print(f"Debug - WireframeViewer: Error loading MRI data: {str(e)}")
-            raise
-
-    def load_super_resolution_data(self, filename):
-        try:
-            self.wireframe = Wireframe.load_super_resolution(filename)
-            print(f"Debug - WireframeViewer: Super-resolution data loaded successfully from {filename}")
-        except Exception as e:
-            print(f"Debug - WireframeViewer: Error loading super-resolution data: {str(e)}")
             raise
 
     def mouseMoveEvent(self, event):

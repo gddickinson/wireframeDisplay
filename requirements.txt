@@ -3,3 +3,4 @@ pyqtgraph==0.12.3
 numpy==1.21.5
 scipy==1.7.3
 scikit-image==0.19.2
+nibabel==5.5.0

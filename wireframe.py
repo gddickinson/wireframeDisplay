@@ -825,6 +825,27 @@ class Wireframe:
 
         return cls(vertices, faces)
 
+    @classmethod
+    def load_mri(cls, filename, level=None, max_size=128):
+        """Isosurface of a NIfTI volume (.nii / .nii.gz) in scanner (world) millimetres, via marching cubes.
+
+        4D files use their first volume. level is the intensity threshold (default: Otsu's threshold of the volume);
+        volumes larger than max_size voxels along an axis are sampled with a coarser marching-cubes step.
+        """
+        import nibabel as nib
+        from skimage import filters, measure
+        img = nib.load(str(filename))
+        data = np.asarray(img.dataobj, dtype=np.float32)
+        if data.ndim == 4:
+            data = data[..., 0]
+        if data.ndim != 3:
+            raise ValueError(f"expected a 3D or 4D NIfTI volume, got shape {data.shape}")
+        if level is None:
+            level = float(filters.threshold_otsu(data))
+        step = max(1, int(np.ceil(max(data.shape) / max_size)))
+        verts, faces, _, _ = measure.marching_cubes(data, level, step_size=step)
+        return cls(nib.affines.apply_affine(img.affine, verts), faces)
+
     @staticmethod
     def marching_cubes(scalar_field, iso_level, spacing=(1.0, 1.0, 1.0)):
         from skimage import measure

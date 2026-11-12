@@ -88,22 +88,13 @@ class ShapeLoaderDialog(QDialog):
         layout.addWidget(text_group)
 
         # MRI data
-        mri_group = QGroupBox("MRI Data")
+        mri_group = QGroupBox("MRI Data (NIfTI isosurface)")
         mri_layout = QVBoxLayout()
         self.load_mri_button = QPushButton('Load MRI Data')
         self.load_mri_button.clicked.connect(self.load_mri_data)
         mri_layout.addWidget(self.load_mri_button)
         mri_group.setLayout(mri_layout)
         layout.addWidget(mri_group)
-
-        # Super-resolution data
-        sr_group = QGroupBox("Super-resolution Data")
-        sr_layout = QVBoxLayout()
-        self.load_sr_button = QPushButton('Load Super-resolution Data')
-        self.load_sr_button.clicked.connect(self.load_super_resolution_data)
-        sr_layout.addWidget(self.load_sr_button)
-        sr_group.setLayout(sr_layout)
-        layout.addWidget(sr_group)
 
         self.setLayout(layout)
 
@@ -134,11 +125,6 @@ class ShapeLoaderDialog(QDialog):
         filename, _ = QFileDialog.getOpenFileName(self, "Open MRI Data", "", "NIfTI files (*.nii *.nii.gz)")
         if filename:
             self.shape_loaded.emit(('mri', filename))
-
-    def load_super_resolution_data(self):
-        filename, _ = QFileDialog.getOpenFileName(self, "Open Super-resolution Data", "", "All Files (*)")
-        if filename:
-            self.shape_loaded.emit(('super_resolution', filename))
 
 if __name__ == '__main__':
     from PyQt5.QtWidgets import QApplication
