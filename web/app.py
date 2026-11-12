@@ -33,10 +33,10 @@ STATIC = Path(__file__).resolve().parent / "static"
 TITLE = "3D Wireframe Viewer"
 # The desktop loader allows 1-8 iterations for every fractal; some grow as 20^n or 8^n, so the browser caps them.
 WEB_ITERATION_CAPS = {"Sierpinski Triangle": 8, "Koch Snowflake": 6, "Menger Sponge": 3, "Apollonian Gasket": 7,
-                      "Jerusalem Cube": 4, "Sierpinski Tetrahedron": 6, "Pythagoras Tree 3D": 8}
+                      "Jerusalem Cube": 3, "Sierpinski Tetrahedron": 6, "Pythagoras Tree 3D": 8}
 # Parameters of the server-built shapes exported to the static site (/shape/<slug>): the loader defaults, with
 # fractal iterations reduced where 4 would be too large to ship as JSON.
-GALLERY_ITERATIONS = {"Menger Sponge": 2, "Jerusalem Cube": 3}
+GALLERY_ITERATIONS = {"Menger Sponge": 2, "Jerusalem Cube": 2}
 
 app = FastAPI(title=TITLE)
 app.mount("/static", StaticFiles(directory=STATIC), name="static")

@@ -693,18 +693,17 @@ class Wireframe:
     @classmethod
     def create_jerusalem_cube(cls, iterations=3, size=1):
         def subdivide(cube):
+            # Jerusalem cube: 8 corner cubes of side k*s and 12 edge cubes of side k^2*s between them,
+            # k = sqrt(2) - 1 (so 2k + k^2 = 1), leaving a cross-shaped hole through each face.
             x, y, z, s = cube
-            s = s / 3
-            return [
-                (x, y, z, s),
-                (x + 2*s, y, z, s),
-                (x, y + 2*s, z, s),
-                (x + 2*s, y + 2*s, z, s),
-                (x, y, z + 2*s, s),
-                (x + 2*s, y, z + 2*s, s),
-                (x, y + 2*s, z + 2*s, s),
-                (x + 2*s, y + 2*s, z + 2*s, s)
-            ]
+            a = s * (sqrt(2) - 1)
+            b = s * (sqrt(2) - 1) ** 2
+            corners = [(x + i * (s - a), y + j * (s - a), z + k * (s - a), a)
+                       for i in (0, 1) for j in (0, 1) for k in (0, 1)]
+            edges = [(x + a, y + j * (s - b), z + k * (s - b), b) for j in (0, 1) for k in (0, 1)]
+            edges += [(x + i * (s - b), y + a, z + k * (s - b), b) for i in (0, 1) for k in (0, 1)]
+            edges += [(x + i * (s - b), y + j * (s - b), z + a, b) for i in (0, 1) for j in (0, 1)]
+            return corners + edges
 
         def generate_cubes(iterations):
             cubes = [(0, 0, 0, size)]

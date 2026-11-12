@@ -134,10 +134,14 @@ export function apollonianGasket(iterations = 3, size = 1) {
 
 export function jerusalemCube(iterations = 3, size = 1) {
   let cubes = [[0, 0, 0, size]];
-  for (let n = 0; n < iterations; n++) cubes = cubes.flatMap(([x, y, z, s0]) => {
-    const s = s0 / 3;
-    return [[x, y, z, s], [x + 2 * s, y, z, s], [x, y + 2 * s, z, s], [x + 2 * s, y + 2 * s, z, s],
-      [x, y, z + 2 * s, s], [x + 2 * s, y, z + 2 * s, s], [x, y + 2 * s, z + 2 * s, s], [x + 2 * s, y + 2 * s, z + 2 * s, s]];
+  // 8 corner cubes of side k*s and 12 edge cubes of side k^2*s, k = sqrt(2) - 1 (Wireframe.create_jerusalem_cube)
+  for (let n = 0; n < iterations; n++) cubes = cubes.flatMap(([x, y, z, s]) => {
+    const a = s * (sqrt(2) - 1), b = s * (sqrt(2) - 1) ** 2, out = [], o = [0, 1];
+    for (const i of o) for (const j of o) for (const k of o) out.push([x + i * (s - a), y + j * (s - a), z + k * (s - a), a]);
+    for (const j of o) for (const k of o) out.push([x + a, y + j * (s - b), z + k * (s - b), b]);
+    for (const i of o) for (const k of o) out.push([x + i * (s - b), y + a, z + k * (s - b), b]);
+    for (const i of o) for (const j of o) out.push([x + i * (s - b), y + j * (s - b), z + a, b]);
+    return out;
   });
   return boxes(cubes.map(([x, y, z, s]) => boxAt(x, y, z, s)));
 }
