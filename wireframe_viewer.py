@@ -1,318 +1,26 @@
-import sys
-from PyQt5.QtWidgets import (QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QComboBox, QPushButton,
-                             QSlider, QLabel, QMessageBox, QGroupBox, QCheckBox, QColorDialog, QAction,
-                             QFileDialog, QSpinBox, QListWidget, QSplitter, QDialog, QFormLayout, QMenu, QDoubleSpinBox,
-                             QDialogButtonBox, QInputDialog, QLineEdit)
+"""Desktop app: the WireframeViewer main window (PyQt5 + pyqtgraph). Run: python wireframe_viewer.py
 
-from PyQt5.QtCore import Qt, QTimer, QTime, QPointF
-from PyQt5.QtGui import QVector3D, QMatrix4x4, QColor
-from PyQt5.QtGui import QColor
+Parts live in scene_objects.py (SceneObject, Scene), viewer_dialogs.py (dialogs), viewer_mouse.py (mouse) and
+viewer_files.py (shape and file loading); their public names are re-exported here.
+"""
+import sys
+from PyQt5.QtWidgets import (QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QPushButton, QSlider,
+                             QLabel, QMessageBox, QGroupBox, QColorDialog, QAction, QListWidget, QSplitter, QMenu,
+                             QInputDialog)
+from PyQt5.QtCore import Qt, QTimer, QTime
 import pyqtgraph.opengl as gl
 import numpy as np
-from wireframe import Wireframe
-from mesh_utils import edges_from_faces
-from shape_loader_dialog import ShapeLoaderDialog
-from scene_math import physics_step, transform_vertices
+
 import shape_catalog as catalog
-
-import numpy as np
-
-
-def _rgba(qcolor):
-    return (qcolor.redF(), qcolor.greenF(), qcolor.blueF(), 1.0)
-
-
-def default_style():
-    """Display style before the options dialog is read: shape_catalog defaults."""
-    d = catalog.DISPLAY
-    return {"show_faces": d["show_faces"], "show_edges": d["show_edges"], "show_vertices": d["show_vertices"],
-            "face_color": catalog.OBJECT_COLOR, "edge_color": tuple(c / 255 for c in d["edge_color"]) + (1.0,),
-            "vertex_color": tuple(c / 255 for c in d["vertex_color"]) + (1.0,),
-            "edge_width": d["edge_width"][2], "vertex_size": d["vertex_size"][2]}
+from shape_loader_dialog import ShapeLoaderDialog
+from scene_objects import SceneObject, Scene, default_style, display_style  # noqa: F401 (re-exported)
+from viewer_dialogs import ColorButton, DisplayOptionsDialog, ObjectPropertiesDialog  # noqa: F401 (re-exported)
+from viewer_files import ViewerFilesMixin
+from viewer_mouse import ViewerMouseMixin
+from wireframe import Wireframe  # noqa: F401 (re-exported)
 
 
-def display_style(options):
-    """The settings of a DisplayOptionsDialog as plain values (colours as RGBA 0-1)."""
-    return {"show_faces": options.show_faces.isChecked(), "show_edges": options.show_edges.isChecked(),
-            "show_vertices": options.show_vertices.isChecked(), "face_color": _rgba(options.face_color_btn.color),
-            "edge_color": _rgba(options.edge_color_btn.color), "vertex_color": _rgba(options.vertex_color_btn.color),
-            "edge_width": options.edge_width.value(), "vertex_size": options.vertex_size.value()}
-
-
-class SceneObject:
-    def __init__(self, wireframe, position=(0, 0, 0), rotation=(0, 0, 0), scale=(1, 1, 1)):
-        self.wireframe = wireframe
-        self.position = np.array(position, dtype=float)
-        self.rotation = np.array(rotation, dtype=float)
-        self.scale = np.array(scale, dtype=float)
-        self.velocity = np.zeros(3)
-        self.angular_velocity = np.zeros(3)
-        self.mesh_item = None
-        self.edge_item = None
-        self.vertex_item = None
-        self.center = self.calculate_center()
-        self.original_color = catalog.OBJECT_COLOR  # Light gray
-        self.hover_color = catalog.HOVER_COLOR  # Bright red
-        self.current_color = self.original_color
-        # New properties
-        self.name = "Unnamed Object"
-        self.mass = 1.0
-        self.rotation_speed = np.zeros(3)  # x, y, z rotation speeds
-        self.is_animated = False
-
-        print(f"SceneObject initialized with color: {self.current_color}")
-
-    def set_name(self, name):
-        self.name = name
-
-    def set_mass(self, mass):
-        self.mass = max(0.1, mass)  # Ensure mass is positive
-
-    def set_rotation_speed(self, x, y, z):
-        self.rotation_speed = np.array([x, y, z])
-
-    def set_scale(self, x, y, z):
-        self.scale = np.array([x, y, z])
-        self.update_mesh(None)  # Update mesh to reflect new scale
-
-    def toggle_animation(self):
-        self.is_animated = not self.is_animated
-
-    def update_animation(self, dt):
-        if self.is_animated:
-            self.rotation += self.rotation_speed * dt
-            self.update_mesh(None)
-
-    def set_hover_color(self):
-        #print(f"Setting hover color: {self.hover_color}")
-        self.current_color = self.hover_color
-        self.update_color()
-
-    def reset_color(self):
-        #print(f"Resetting to original color: {self.original_color}")
-        self.current_color = self.original_color
-        self.update_color()
-
-    def update_color(self):
-        if self.mesh_item:
-            #print(f"Updating mesh item color to: {self.current_color}")
-            self.mesh_item.setColor(self.current_color)
-            # Force update of the mesh data to trigger a redraw
-            if hasattr(self.mesh_item, 'meshData'):
-                vertices = self.mesh_item.meshData.vertexes()
-                faces = self.mesh_item.meshData.faces()
-                self.mesh_item.setMeshData(vertexes=vertices, faces=faces, color=self.current_color)
-            else:
-                print("Mesh item does not have meshData attribute")
-        else:
-            print("Mesh item is None, color not updated")
-
-    def update_mesh(self, display_options):
-        """Rebuild the GL items: faces (GLMeshItem), polygon edges (GLLinePlotItem) and vertices (GLScatterPlotItem).
-        display_options is the DisplayOptionsDialog; None keeps the current style (animation / properties updates)."""
-        if display_options is not None:
-            self.style = display_style(display_options)
-        style = getattr(self, "style", None) or default_style()
-        if self.current_color != self.hover_color:
-            self.current_color = style["face_color"]
-        self.original_color = style["face_color"]
-        transformed_vertices = self.get_transformed_vertices()
-
-        if self.mesh_item is None:
-            self.mesh_item = gl.GLMeshItem(vertexes=transformed_vertices, faces=self.wireframe.triangles(),
-                                           smooth=True, drawEdges=False)
-            self.mesh_item.setColor(self.current_color)
-            self.edge_item = gl.GLLinePlotItem(mode='lines', antialias=True, glOptions='opaque')
-            self.vertex_item = gl.GLScatterPlotItem(pxMode=True, glOptions='opaque')
-        else:
-            self.mesh_item.setMeshData(vertexes=transformed_vertices, faces=self.wireframe.triangles(),
-                                       color=self.current_color)
-        self.set_item_geometry(transformed_vertices, style)
-
-        has_faces = self.wireframe.faces is not None and len(self.wireframe.faces) > 0
-        self.mesh_item.setVisible(style["show_faces"] and has_faces)
-        self.edge_item.setVisible(style["show_edges"] and has_faces)
-        self.vertex_item.setVisible(style["show_vertices"] or not has_faces)  # a point cloud is all there is to draw
-
-    def set_item_geometry(self, vertices, style):
-        """Move the edge and vertex items to the transformed vertices, with the current colours and sizes."""
-        if not hasattr(self, "_edges"):
-            self._edges = np.array(edges_from_faces(self.wireframe.faces), dtype=int).reshape(-1, 2)
-        segments = vertices[self._edges.ravel()] if len(self._edges) else np.zeros((2, 3))
-        self.edge_item.setData(pos=segments, color=style["edge_color"], width=style["edge_width"])
-        self.vertex_item.setData(pos=vertices, color=style["vertex_color"], size=style["vertex_size"])
-
-    def get_center(self):
-        return np.array(self.center) + np.array(self.position)
-
-    def calculate_center(self):
-        return np.mean(self.wireframe.vertices, axis=0)
-
-    def get_transformed_vertices(self):
-        """Scale and rotate about the centre, then translate (scene_math.transform_vertices)."""
-        return transform_vertices(self.wireframe.vertices, self.center, self.scale, self.rotation, self.position)
-
-    def update_center(self):
-        self.center = self.calculate_center()
-
-
-    def apply_transformation(self):
-        if self.mesh_item:
-            translated_vertices = self.get_transformed_vertices()
-
-            self.mesh_item.setMeshData(vertexes=translated_vertices, faces=self.wireframe.triangles(),
-                                       color=self.current_color)
-            if self.edge_item is not None:
-                self.set_item_geometry(translated_vertices, getattr(self, "style", None) or default_style())
-
-    def translate(self, dx, dy, dz):
-        self.position += np.array([dx, dy, dz])
-
-    def rotate(self, rx, ry, rz):
-        self.rotation += np.array([rx, ry, rz])
-
-    def scale_object(self, sx, sy, sz):
-        self.scale *= np.array([sx, sy, sz])
-        self.update_center()
-
-    def cleanup(self):
-        """Remove all items associated with this object from the view."""
-        if self.mesh_item:
-            self.mesh_item.setParent(None)
-            self.mesh_item = None
-        if self.edge_item:
-            self.edge_item.setParent(None)
-            self.edge_item = None
-        if self.vertex_item:
-            self.vertex_item.setParent(None)
-            self.vertex_item = None
-
-
-class Scene:
-    def __init__(self):
-        self.objects = []
-
-    def add_object(self, scene_object):
-        self.objects.append(scene_object)
-
-    def remove_object(self, scene_object):
-        self.objects.remove(scene_object)
-
-    def update_physics(self, dt):
-        for obj in self.objects:
-            # integrate, simple gravity along -z (the camera's up axis), bounce at z = 0: scene_math.physics_step
-            physics_step(obj.position, obj.velocity, obj.rotation, obj.angular_velocity, dt)
-
-    def apply_transformations(self):
-        for obj in self.objects:
-            obj.apply_transformation()
-
-
-class ColorButton(QPushButton):
-    def __init__(self, color):
-        super().__init__()
-        self.setColor(color)
-
-    def setColor(self, color):
-        self.color = color
-        self.setStyleSheet(f"background-color: {color.name()}; color: {'black' if color.lightness() > 127 else 'white'}")
-        self.setText(color.name())
-
-class DisplayOptionsDialog(QDialog):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setWindowTitle("Display Options")
-        self.setGeometry(100, 100, 300, 300)
-
-        layout = QVBoxLayout()
-
-        self.show_faces = QCheckBox("Show Faces")
-        self.show_edges = QCheckBox("Show Edges")
-        self.show_vertices = QCheckBox("Show Vertices")
-
-        d = catalog.DISPLAY
-        self.face_color_btn = ColorButton(QColor.fromRgbF(*catalog.OBJECT_COLOR))  # what objects are drawn in
-        self.edge_color_btn = ColorButton(QColor(*d["edge_color"]))
-        self.vertex_color_btn = ColorButton(QColor(*d["vertex_color"]))
-
-        self.edge_width = QSpinBox()
-        self.edge_width.setRange(*d["edge_width"][:2])
-        self.edge_width.setValue(d["edge_width"][2])
-        self.edge_width.setPrefix("Edge Width: ")
-
-        self.vertex_size = QSpinBox()
-        self.vertex_size.setRange(*d["vertex_size"][:2])
-        self.vertex_size.setValue(d["vertex_size"][2])
-        self.vertex_size.setPrefix("Vertex Size: ")
-
-        layout.addWidget(self.show_faces)
-        layout.addWidget(self.show_edges)
-        layout.addWidget(self.show_vertices)
-        layout.addWidget(self.face_color_btn)
-        layout.addWidget(self.edge_color_btn)
-        layout.addWidget(self.vertex_color_btn)
-        layout.addWidget(self.edge_width)
-        layout.addWidget(self.vertex_size)
-
-        self.setLayout(layout)
-
-class ObjectPropertiesDialog(QDialog):
-    def __init__(self, scene_object, parent=None):
-        super().__init__(parent)
-        self.scene_object = scene_object
-        self.setWindowTitle(f"Properties: {scene_object.name}")
-        self.initUI()
-
-    def initUI(self):
-        layout = QFormLayout()
-
-        self.name_input = QLineEdit(self.scene_object.name)
-        layout.addRow("Name:", self.name_input)
-
-        self.mass_input = QDoubleSpinBox()
-        self.mass_input.setRange(0.1, 1000)
-        self.mass_input.setValue(self.scene_object.mass)
-        layout.addRow("Mass:", self.mass_input)
-
-        self.scale_x = QDoubleSpinBox()
-        self.scale_y = QDoubleSpinBox()
-        self.scale_z = QDoubleSpinBox()
-        for spinbox in (self.scale_x, self.scale_y, self.scale_z):
-            spinbox.setRange(0.1, 10)
-            spinbox.setSingleStep(0.1)
-            spinbox.setValue(1)
-        layout.addRow("Scale X:", self.scale_x)
-        layout.addRow("Scale Y:", self.scale_y)
-        layout.addRow("Scale Z:", self.scale_z)
-
-        self.rot_speed_x = QDoubleSpinBox()
-        self.rot_speed_y = QDoubleSpinBox()
-        self.rot_speed_z = QDoubleSpinBox()
-        for spinbox in (self.rot_speed_x, self.rot_speed_y, self.rot_speed_z):
-            spinbox.setRange(-10, 10)
-            spinbox.setSingleStep(0.1)
-            spinbox.setValue(0)
-        layout.addRow("Rotation Speed X:", self.rot_speed_x)
-        layout.addRow("Rotation Speed Y:", self.rot_speed_y)
-        layout.addRow("Rotation Speed Z:", self.rot_speed_z)
-
-        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
-        buttons.accepted.connect(self.accept)
-        buttons.rejected.connect(self.reject)
-        layout.addRow(buttons)
-
-        self.setLayout(layout)
-
-    def get_values(self):
-        return {
-            "name": self.name_input.text(),
-            "mass": self.mass_input.value(),
-            "scale": (self.scale_x.value(), self.scale_y.value(), self.scale_z.value()),
-            "rotation_speed": (self.rot_speed_x.value(), self.rot_speed_y.value(), self.rot_speed_z.value())
-        }
-
-
-class WireframeViewer(QMainWindow):
+class WireframeViewer(ViewerFilesMixin, ViewerMouseMixin, QMainWindow):
     def __init__(self):
         super().__init__()
         self.scene = Scene()
@@ -325,7 +33,6 @@ class WireframeViewer(QMainWindow):
         self.selected_object = None
         self.last_mouse_pos = None
         self.hovered_object = None
-
 
     def initUI(self):
         self.setWindowTitle('Wireframe Viewer')
@@ -456,7 +163,6 @@ class WireframeViewer(QMainWindow):
             elif action == toggle_animation_action:
                 scene_object.toggle_animation()
 
-
     def setup_display_options(self):
         self.display_options.show_faces.setChecked(catalog.DISPLAY["show_faces"])
         self.display_options.show_edges.setChecked(catalog.DISPLAY["show_edges"])
@@ -469,7 +175,6 @@ class WireframeViewer(QMainWindow):
         self.display_options.show_vertices.stateChanged.connect(self.update_display_options)
         self.display_options.edge_width.valueChanged.connect(self.update_display_options)
         self.display_options.vertex_size.valueChanged.connect(self.update_display_options)
-
 
     def create_transformation_controls(self, layout):
         transform_layout = QHBoxLayout()
@@ -514,34 +219,6 @@ class WireframeViewer(QMainWindow):
         slider_layout.addWidget(value_label)
         layout.addLayout(slider_layout)
         return slider
-
-    def load_shape(self):
-        shape = self.shape_combo.currentText()
-        self.view.clear()
-
-        try:
-            if shape == 'Cube':
-                self.wireframe = Wireframe.create_cube()
-            elif shape == 'Sphere':
-                self.wireframe = Wireframe.create_sphere()
-            elif shape == 'Tetrahedron':
-                self.wireframe = Wireframe.create_tetrahedron()
-            elif shape == 'Octahedron':
-                self.wireframe = Wireframe.create_octahedron()
-            elif shape == 'Icosahedron':
-                self.wireframe = Wireframe.create_icosahedron()
-            elif shape == 'Torus':
-                self.wireframe = Wireframe.create_torus()
-            elif shape == 'Cylinder':
-                self.wireframe = Wireframe.create_cylinder()
-            elif shape == 'Cone':
-                self.wireframe = Wireframe.create_cone()
-
-            self.update_display()
-            self.reset_transformation()
-
-        except Exception as e:
-            QMessageBox.critical(self, "Error", f"Failed to load shape: {str(e)}")
 
     def apply_transformation(self):
         if not self.scene.objects:
@@ -611,86 +288,6 @@ class WireframeViewer(QMainWindow):
             obj.update_mesh(self.display_options)
         self.view.update()
 
-
-    def open_file(self):
-        filename, _ = QFileDialog.getOpenFileName(self, "Open File", "", "OBJ Files (*.obj);;JSON Files (*.json)")
-        if filename:
-            try:
-                if filename.endswith('.obj'):
-                    wireframe = Wireframe.load_from_obj(filename)
-                elif filename.endswith('.json'):
-                    wireframe = Wireframe.load_from_json(filename)
-                else:
-                    raise ValueError("expected a .obj or .json file")
-                self.add_wireframe(wireframe, f"file: {filename.replace(chr(92), '/').split('/')[-1]}")
-                self.update_display()
-            except Exception as e:
-                QMessageBox.critical(self, "Error", f"Failed to open file: {str(e)}")
-
-    def save_file(self):
-        """Save the selected scene object's wireframe (or the most recently added one)."""
-        if not self.scene.objects:
-            QMessageBox.warning(self, "Warning", "No wireframe to save")
-            return
-        row = self.object_list.currentRow()
-        wireframe = self.scene.objects[row if 0 <= row < len(self.scene.objects) else -1].wireframe
-
-        filename, _ = QFileDialog.getSaveFileName(self, "Save File", "", "OBJ Files (*.obj);;JSON Files (*.json)")
-        if filename:
-            try:
-                if filename.endswith('.json'):
-                    wireframe.save_to_json(filename)
-                else:
-                    wireframe.save_to_obj(filename)
-                QMessageBox.information(self, "Success", "File saved successfully")
-            except Exception as e:
-                QMessageBox.critical(self, "Error", f"Failed to save file: {str(e)}")
-
-
-    def show_shape_loader(self):
-        self.shape_loader.show()
-        self.shape_loader.raise_()
-        self.shape_loader.activateWindow()
-
-    def on_shape_loaded(self, shape_data):
-        print(f"Debug - WireframeViewer: Received shape_data: {shape_data}")
-        shape_type, shape_info = shape_data
-        try:
-            wireframe = self.create_wireframe(shape_type, shape_info)
-            if wireframe:
-                self.add_wireframe(wireframe, f"{shape_type}: {shape_info}")
-        except Exception as e:
-            print(f"Error loading shape: {str(e)}")
-            QMessageBox.critical(self, "Error", f"Failed to load shape: {str(e)}")
-
-    def add_wireframe(self, wireframe, name):
-        """Add a wireframe to the scene; the mesh is built first so a failure leaves the scene unchanged."""
-        scene_object = SceneObject(wireframe)
-        scene_object.wireframe.name = name
-        scene_object.update_mesh(self.display_options)
-        self.scene.add_object(scene_object)
-        self.view.addItem(scene_object.mesh_item)
-        if scene_object.edge_item:
-            self.view.addItem(scene_object.edge_item)
-        if scene_object.vertex_item:
-            self.view.addItem(scene_object.vertex_item)
-        self.object_list.addItem(scene_object.wireframe.name)
-        return scene_object
-
-    def create_wireframe(self, shape_type, shape_info):
-        if shape_type == 'basic':
-            return Wireframe.create_basic_shape(shape_info)
-        elif shape_type == 'parametric':
-            return Wireframe.create_parametric_shape(*shape_info)
-        elif shape_type == 'fractal':
-            return Wireframe.create_fractal(*shape_info)
-        elif shape_type == 'text':
-            return Wireframe.create_text(shape_info)
-        elif shape_type == 'mri':
-            return Wireframe.load_mri(shape_info)
-        else:
-            raise ValueError(f"Unknown shape type: {shape_type}")
-
     def remove_selected_object(self):
         selected_items = self.object_list.selectedItems()
         for item in selected_items:
@@ -751,7 +348,6 @@ class WireframeViewer(QMainWindow):
         else:
             print(f"Invalid index {index} for object deletion")
 
-
     def show_properties_dialog(self, scene_object):
         dialog = ObjectPropertiesDialog(scene_object, self)
         if dialog.exec_():
@@ -781,7 +377,6 @@ class WireframeViewer(QMainWindow):
 
         self.update_display()
 
-
     def sync_object_list(self):
         # Clear the object_list
         self.object_list.clear()
@@ -791,7 +386,6 @@ class WireframeViewer(QMainWindow):
             # Assuming each object has a name or some identifier
             self.object_list.addItem(f"Object: {obj.wireframe.name if hasattr(obj.wireframe, 'name') else 'Unnamed'}")
 
-
     def toggle_animation(self):
         if self.is_playing:
             self.is_playing = False
@@ -800,219 +394,6 @@ class WireframeViewer(QMainWindow):
             self.is_playing = True
             self.play_button.setText('Pause')
             self.last_time = QTime.currentTime()
-
-    # def update_scene(self):
-    #     current_time = QTime.currentTime()
-
-    #     if self.is_playing:
-    #         dt = self.last_time.msecsTo(current_time) / 1000.0
-    #         self.scene.update_physics(dt)
-
-    #     self.last_time = current_time
-    #     self.scene.apply_transformations()
-    #     self.update_display()
-
-
-    def load_basic_shape(self, shape_name):
-        try:
-            self.wireframe = Wireframe.create_basic_shape(shape_name)
-            print(f"Debug - WireframeViewer: Basic shape '{shape_name}' created successfully")
-        except Exception as e:
-            print(f"Debug - WireframeViewer: Error creating basic shape: {str(e)}")
-            raise
-
-    def load_parametric_shape(self, shape_info):
-        shape_name, u_res, v_res = shape_info
-        try:
-            self.wireframe = Wireframe.create_parametric_shape(shape_name, u_res, v_res)
-            print(f"Debug - WireframeViewer: Parametric shape '{shape_name}' created successfully")
-        except Exception as e:
-            print(f"Debug - WireframeViewer: Error creating parametric shape: {str(e)}")
-            raise
-
-    def load_fractal_shape(self, fractal_info):
-        fractal_type, iterations, size = fractal_info
-        try:
-            if fractal_type == 'Sierpinski Triangle':
-                self.wireframe = Wireframe.create_sierpinski_triangle(iterations, size)
-            elif fractal_type == 'Koch Snowflake':
-                self.wireframe = Wireframe.create_koch_snowflake(iterations, size)
-            elif fractal_type == 'Menger Sponge':
-                self.wireframe = Wireframe.create_menger_sponge(iterations, size)
-            elif fractal_type == 'Apollonian Gasket':
-                self.wireframe = Wireframe.create_apollonian_gasket(iterations, size)
-            elif fractal_type == 'Jerusalem Cube':
-                self.wireframe = Wireframe.create_jerusalem_cube(iterations, size)
-            elif fractal_type == 'Sierpinski Tetrahedron':
-                self.wireframe = Wireframe.create_sierpinski_tetrahedron(iterations, size)
-            elif fractal_type == 'Pythagoras Tree 3D':
-                self.wireframe = Wireframe.create_pythagoras_tree_3d(iterations, size)
-            else:
-                raise ValueError(f"Unknown fractal type: {fractal_type}")
-            print(f"Debug - WireframeViewer: Fractal '{fractal_type}' created successfully")
-        except Exception as e:
-            print(f"Debug - WireframeViewer: Error creating fractal: {str(e)}")
-            raise
-
-    def load_text_shape(self, text):
-        try:
-            self.wireframe = Wireframe.create_text(text)
-            print(f"Debug - WireframeViewer: Text shape '{text}' created successfully")
-        except Exception as e:
-            print(f"Debug - WireframeViewer: Error creating text shape: {str(e)}")
-            raise
-
-    def load_mri_data(self, filename):
-        try:
-            self.wireframe = Wireframe.load_mri(filename)
-            print(f"Debug - WireframeViewer: MRI data loaded successfully from {filename}")
-        except Exception as e:
-            print(f"Debug - WireframeViewer: Error loading MRI data: {str(e)}")
-            raise
-
-    def mouseMoveEvent(self, event):
-        pos = QPointF(event.x(), event.y())
-        new_hovered_object = self.get_object_at_position(pos)
-        #print(f"Mouse moved to ({event.x()}, {event.y()})")
-        #print(f"New hovered object: {new_hovered_object}")
-
-        if new_hovered_object != self.hovered_object:
-            #print("Hover object changed")
-            if self.hovered_object:
-                #print(f"Resetting color of previously hovered object: {self.hovered_object}")
-                self.hovered_object.reset_color()
-
-            self.hovered_object = new_hovered_object
-            if self.hovered_object:
-                #print(f"Setting hover color for new hovered object: {self.hovered_object}")
-                self.hovered_object.set_hover_color()
-
-            self.update_display()
-
-        # Handle dragging for selected object
-        if self.selected_object and event.buttons() & Qt.LeftButton:
-            dx = event.x() - self.last_mouse_pos.x()
-            dy = event.y() - self.last_mouse_pos.y()
-
-            if event.modifiers() & Qt.ControlModifier:
-                self.selected_object.translate(-dx * 0.01, dy * 0.01, 0)
-            else:
-                self.selected_object.rotate(-dy * 0.01, -dx * 0.01, 0)
-
-            self.selected_object.apply_transformation()
-            self.update_display()
-
-        self.last_mouse_pos = event.pos()
-
-
-    def center_view_on_object(self, item):
-        index = self.object_list.row(item)
-        if 0 <= index < len(self.scene.objects):
-            obj = self.scene.objects[index]
-            center = obj.get_center()
-            # Convert NumPy array to QVector3D
-            center_qvector = QVector3D(center[0], center[1], center[2])
-
-            # Get the current distance of the camera from the center
-            current_distance = (self.view.cameraPosition() - self.view.opts['center']).length()
-
-            # Set the new center
-            self.view.opts['center'] = center_qvector
-
-            # Calculate the new camera position
-            camera_vector = self.view.cameraPosition() - self.view.opts['center']
-            camera_vector = camera_vector.normalized() * current_distance
-            new_camera_pos = center_qvector + camera_vector
-
-            # Update the camera position
-            self.view.setCameraPosition(pos=new_camera_pos)
-
-    def mouseReleaseEvent(self, event):
-        if event.button() == Qt.LeftButton:
-            self.selected_object = None
-            self.last_mouse_pos = None
-
-
-    def get_object_at_position(self, pos):
-        ray_start, ray_direction = self.calculate_camera_ray(pos)
-        if ray_start is None or ray_direction is None:
-            print("Failed to calculate camera ray")
-            return None
-
-        # Convert QVector3D to NumPy arrays
-        ray_start = np.array([ray_start.x(), ray_start.y(), ray_start.z()])
-        ray_direction = np.array([ray_direction.x(), ray_direction.y(), ray_direction.z()])
-
-        closest_object = None
-        min_distance = float('inf')
-
-        for obj in self.scene.objects:
-            object_center = obj.get_center()
-
-            # Calculate the closest point on the ray to the object's center
-            t = np.dot(object_center - ray_start, ray_direction)
-            closest_point = ray_start + t * ray_direction
-
-            # Calculate the distance from the closest point to the object's center
-            distance = np.linalg.norm(object_center - closest_point)
-
-            #print(f"Object: {obj}, Distance: {distance}")
-
-            # Update the closest object if this one is closer
-            if distance < min_distance:
-                min_distance = distance
-                closest_object = obj
-
-        # Return the closest object if it's within a certain threshold distance
-        threshold = 1.0  # Increased threshold for easier selection
-        result = closest_object if min_distance < threshold else None
-        #rint(f"Closest object: {result}, Distance: {min_distance}")
-        return result
-
-    def calculate_camera_ray(self, pos):
-        # Get the view matrix
-        view_matrix = self.view.viewMatrix()
-
-        # Get the projection matrix
-        try:
-            projection_matrix = self.view.projectionMatrix()  # pyqtgraph < 0.13
-        except TypeError:  # pyqtgraph >= 0.13: projectionMatrix(region, viewport)
-            viewport = self.view.getViewport()
-            projection_matrix = self.view.projectionMatrix(viewport, viewport)
-
-        # Combine view and projection matrices
-        view_projection_matrix = projection_matrix * view_matrix
-
-        # Invert the combined matrix
-        inverse_matrix, invertible = view_projection_matrix.inverted()
-        if not invertible:
-            print("Error: View projection matrix is not invertible")
-            return None, None
-
-        # Calculate near and far points in normalized device coordinates
-        x = (2.0 * pos.x()) / self.view.width() - 1.0
-        y = 1.0 - (2.0 * pos.y()) / self.view.height()
-        near_point = QVector3D(x, y, -1.0)
-        far_point = QVector3D(x, y, 1.0)
-
-        # Transform near and far points to world coordinates
-        near_point = inverse_matrix.map(near_point)
-        far_point = inverse_matrix.map(far_point)
-
-        # Calculate ray direction
-        ray_direction = (far_point - near_point).normalized()
-
-        return near_point, ray_direction
-
-
-    def mousePressEvent(self, event):
-        if event.button() == Qt.LeftButton:
-            self.last_mouse_pos = event.pos()
-            self.selected_object = self.get_object_at_position(QPointF(event.x(), event.y()))
-            if self.selected_object:
-                print(f"Selected object: {self.selected_object}")  # Debug print
-            else:
-                print("No object selected")  # Debug print
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
