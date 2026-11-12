@@ -49,3 +49,12 @@ def test_jerusalem_cube_first_level_layout():
     # every edge cube sits between two corner cubes along one axis, flush with two outer faces
     for e in edges:
         assert sum(np.isclose(e, k, atol=1e-5)) == 1 and sum(np.isclose(e, 0, atol=1e-5) | np.isclose(e, 1 - k * k, atol=1e-5)) == 2
+
+
+@pytest.mark.parametrize("u,v", [(30, 30), (12, 20)])
+def test_gyroid_in_world_coordinates(u, v):
+    w = Wireframe.create_parametric_shape("Gyroid", u, v)
+    p = w.vertices.astype(float)
+    assert p.min() >= -np.pi - 1e-6 and p.max() <= np.pi + 1e-6  # used to be voxel indices 0..29
+    f = np.sin(p[:, 0]) * np.cos(p[:, 1]) + np.sin(p[:, 1]) * np.cos(p[:, 2]) + np.sin(p[:, 2]) * np.cos(p[:, 0])
+    assert np.abs(f).max() < 0.06  # on the surface sin x cos y + sin y cos z + sin z cos x = 0 (marching-cubes error)

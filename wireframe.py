@@ -622,10 +622,12 @@ class Wireframe:
         x = np.linspace(-pi, pi, u_res)
         y = np.linspace(-pi, pi, v_res)
         z = np.linspace(-pi, pi, w_res)
-        x, y, z = np.meshgrid(x, y, z)
+        x, y, z = np.meshgrid(x, y, z, indexing='ij')  # array axes 0, 1, 2 = x, y, z
 
         values = np.sin(x) * np.cos(y) + np.sin(y) * np.cos(z) + np.sin(z) * np.cos(x)
-        vertices, faces, _, _ = cls.marching_cubes(values, 0)
+        spacing = tuple(2 * pi / (n - 1) for n in (u_res, v_res, w_res))
+        vertices, faces, _, _ = cls.marching_cubes(values, 0, spacing)
+        vertices = vertices - pi  # voxel positions -> world coordinates in [-pi, pi]
 
         return cls(vertices, faces)
 
@@ -824,9 +826,9 @@ class Wireframe:
         return cls(vertices, faces)
 
     @staticmethod
-    def marching_cubes(scalar_field, iso_level):
+    def marching_cubes(scalar_field, iso_level, spacing=(1.0, 1.0, 1.0)):
         from skimage import measure
-        verts, faces, normals, values = measure.marching_cubes(scalar_field, iso_level)
+        verts, faces, normals, values = measure.marching_cubes(scalar_field, iso_level, spacing=spacing)
         return verts, faces, normals, values
 
     @staticmethod
