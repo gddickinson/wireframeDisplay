@@ -301,16 +301,18 @@ class Wireframe:
                     c = a + d
                     e = b - d
                     v = np.array([-d[1], d[0], 0])  # Perpendicular vector
-                    d = c + v * sqrt(3) / 3
+                    d = (c + e) / 2 + v * sqrt(3) / 2  # apex of an equilateral bump on the middle third
                     new_points.extend([a, c, d, e])
                 new_points.append(points[-1])
                 return koch(new_points, n-1)
 
+        # Equilateral triangle inscribed in a circle of radius `size`, traversed clockwise so the bumps (on the left
+        # of each segment) point outwards; the last point closes the loop.
         initial_points = np.array([
-            [0, 0, 0],
-            [size * cos(2*pi/3), size * sin(2*pi/3), 0],
+            [size, 0, 0],
             [size * cos(4*pi/3), size * sin(4*pi/3), 0],
-            [0, 0, 0]
+            [size * cos(2*pi/3), size * sin(2*pi/3), 0],
+            [size, 0, 0]
         ])
 
         points = koch(initial_points, iterations)

@@ -73,14 +73,15 @@ export function sierpinskiTriangle(iterations = 5, size = 1.0) {
 }
 
 export function kochSnowflake(iterations = 4, size = 1.0) {
-  let pts = [[0, 0, 0], [size * cos(2 * PI / 3), size * sin(2 * PI / 3), 0], [size * cos(4 * PI / 3), size * sin(4 * PI / 3), 0], [0, 0, 0]];
+  // equilateral triangle inscribed in radius `size`, clockwise so the bumps point outwards
+  let pts = [[size, 0, 0], [size * cos(4 * PI / 3), size * sin(4 * PI / 3), 0], [size * cos(2 * PI / 3), size * sin(2 * PI / 3), 0], [size, 0, 0]];
   for (let n = 0; n < iterations; n++) {
     const out = [];
     for (let i = 0; i < pts.length - 1; i++) {
       const a = pts[i], b = pts[i + 1], d = [(b[0] - a[0]) / 3, (b[1] - a[1]) / 3, (b[2] - a[2]) / 3];
       const c = [a[0] + d[0], a[1] + d[1], a[2] + d[2]], e = [b[0] - d[0], b[1] - d[1], b[2] - d[2]];
       const v = [-d[1], d[0], 0], s3 = sqrt(3);
-      out.push(a, c, [c[0] + v[0] * s3 / 3, c[1] + v[1] * s3 / 3, c[2] + v[2] * s3 / 3], e);
+      out.push(a, c, [0, 1, 2].map(k => (c[k] + e[k]) / 2 + v[k] * s3 / 2), e); // apex of an equilateral bump
     }
     out.push(pts[pts.length - 1]);
     pts = out;
