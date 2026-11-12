@@ -43,12 +43,12 @@ export function transformVertices(vertices, centre, scale, rotation, position) {
   });
 }
 
-// scene_math.physics_step: integrate, gravity on -y, bounce at y = 0 with restitution 0.8. Mutates obj.
-export const GRAVITY = 9.8, RESTITUTION = 0.8;
+// scene_math.physics_step: integrate, gravity on -z (the camera's up axis), bounce at z = 0 with restitution 0.8.
+export const GRAVITY = 9.8, RESTITUTION = 0.8, UP = 2;
 export function physicsStep(o, dt) {
   for (let k = 0; k < 3; k++) { o.position[k] += o.velocity[k] * dt; o.rotation[k] += o.angularVelocity[k] * dt; }
-  o.velocity[1] -= GRAVITY * dt;
-  if (o.position[1] < 0) { o.position[1] = 0; o.velocity[1] = -o.velocity[1] * RESTITUTION; }
+  o.velocity[UP] -= GRAVITY * dt;
+  if (o.position[UP] < 0) { o.position[UP] = 0; o.velocity[UP] = -o.velocity[UP] * RESTITUTION; }
 }
 
 // --- camera (camera.py = pyqtgraph GLViewWidget) ---------------------------------------------------------------------

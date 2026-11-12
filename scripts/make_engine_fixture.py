@@ -81,13 +81,13 @@ def transforms():
 
 
 def physics():
-    pos, vel = np.array([0.0, 3.0, 0.0]), np.array([0.5, 2.0, -0.25])
+    pos, vel = np.array([0.0, 0.0, 3.0]), np.array([0.5, -0.25, 2.0])
     rot, ang = np.zeros(3), np.array([0.1, 0.2, 0.3])
     traj = []
     for _ in range(150):
         physics_step(pos, vel, rot, ang, 1 / 60)
         traj.append(np.r_[pos, vel, rot].round(12).tolist())
-    return {"start": [[0.0, 3.0, 0.0], [0.5, 2.0, -0.25], [0.1, 0.2, 0.3]], "dt": 1 / 60, "traj": traj}
+    return {"start": [[0.0, 0.0, 3.0], [0.5, -0.25, 2.0], [0.1, 0.2, 0.3]], "dt": 1 / 60, "traj": traj}
 
 
 def cameras():

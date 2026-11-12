@@ -30,8 +30,8 @@ route('about', async () => {
   scaled and rotated about the shape's centre (rotation R = R<sub>z</sub>·R<sub>y</sub>·R<sub>x</sub>) and then translated:</p>
   <p><span class="eq">v' = R · (s ∘ (v − c)) + c + p</span></p>
   <p>Toggle Animation turns an object at its rotation speed (radians per second). The physics step in <code>Scene.update_physics</code>
-  integrates position and rotation, applies gravity of ${cat.physics.gravity} along −y ("assuming Y is up") and bounces objects
-  off y = 0, keeping ${cat.physics.restitution} of their speed. The camera is pyqtgraph's orbit camera: distance ${cat.camera.distance},
+  integrates position and rotation, applies gravity of ${cat.physics.gravity} along −z (the camera's up axis) and bounces objects
+  off the ground plane z = 0, keeping ${cat.physics.restitution} of their speed; Play runs it, on the desktop and here. The camera is pyqtgraph's orbit camera: distance ${cat.camera.distance},
   elevation ${cat.camera.elevation}°, azimuth ${cat.camera.azimuth}°, field of view ${cat.camera.fov}° by default, with z pointing up on screen.</p>
 
   <h2>What the web version covers</h2>
@@ -41,8 +41,7 @@ route('about', async () => {
       against numbers from the Python (see <a href="#/check">Cross-check</a>). The Gyroid is built by the Python server.</li>
     <li>Faces are painted back to front on a canvas instead of with an OpenGL depth buffer; edges are polygon outlines (the desktop
       outlines the triangles OpenGL draws). "Shading" is a web-only light term; switch it off for the desktop's flat colour.</li>
-    <li>Differences from the desktop app as it stands: Play runs the physics step (the desktop's play button only toggles its label,
-      the physics call is commented out); the Display Options edge, vertex, colour and size settings all work (in the desktop only
+    <li>Differences from the desktop app as it stands: the Display Options edge, vertex, colour and size settings all work (in the desktop only
       Show Faces is wired); shapes without faces (Apollonian gasket) show their vertices; dragging empty space orbits the camera
       (pyqtgraph's default, which the desktop's own mouse handlers replace). Fractal iterations are capped in the browser where they
       grow fastest (${esc(Object.entries(cat.web_iteration_caps).filter(([, c]) => c < 8).map(([n, c]) => `${n} ${c}`).join(', '))}).</li>

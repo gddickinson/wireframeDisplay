@@ -25,11 +25,11 @@ def test_transform_matches_original_code():
 
 
 def test_physics_bounces():
-    pos, vel, rot = np.array([0.0, 1.0, 0.0]), np.zeros(3), np.zeros(3)
+    pos, vel, rot = np.array([0.0, 0.0, 1.0]), np.zeros(3), np.zeros(3)
     ys = []
     for _ in range(200):
         physics_step(pos, vel, rot, np.zeros(3), 0.01)
-        ys.append(pos[1])
+        ys.append(pos[2])
     assert min(ys) == 0 and max(ys[60:]) > 0.1  # hit the floor and came back up
 
 

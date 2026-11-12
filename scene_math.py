@@ -2,13 +2,14 @@
 
 rotation_matrix(rotation)      -- Rz . Ry . Rx for Euler angles (rx, ry, rz) in radians
 transform_vertices(...)        -- scale about the centre, rotate about the centre, then translate (SceneObject)
-physics_step(...)              -- one step of Scene.update_physics: integrate, gravity on -y, bounce at y = 0
-GRAVITY, RESTITUTION           -- the constants of that step
+physics_step(...)              -- one step of Scene.update_physics: integrate, gravity on -z, bounce at z = 0
+GRAVITY, RESTITUTION, UP_AXIS  -- the constants of that step (z is up, as in pyqtgraph's orbit camera)
 """
 import numpy as np
 
-GRAVITY = 9.8       # Scene.update_physics: velocity[1] -= 9.8 * dt ("Assuming Y is up")
-RESTITUTION = 0.8   # bounce with damping at the ground plane y = 0
+GRAVITY = 9.8       # Scene.update_physics: velocity[UP_AXIS] -= 9.8 * dt
+RESTITUTION = 0.8   # bounce with damping at the ground plane z = 0
+UP_AXIS = 2         # z: the up axis of the GLViewWidget camera the scene is viewed with
 
 
 def rotation_matrix(rotation):
@@ -36,7 +37,7 @@ def physics_step(position, velocity, rotation, angular_velocity, dt):
     """Scene.update_physics for one object; updates the arrays in place."""
     position += velocity * dt
     rotation += angular_velocity * dt
-    velocity[1] -= GRAVITY * dt
-    if position[1] < 0:
-        position[1] = 0
-        velocity[1] = -velocity[1] * RESTITUTION
+    velocity[UP_AXIS] -= GRAVITY * dt
+    if position[UP_AXIS] < 0:
+        position[UP_AXIS] = 0
+        velocity[UP_AXIS] = -velocity[UP_AXIS] * RESTITUTION

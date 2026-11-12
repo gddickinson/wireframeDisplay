@@ -23,7 +23,7 @@ route('viewer', async (_args, query) => {
         <button class="alt" id="zin" aria-label="Zoom in">+</button><button class="alt" id="zout" aria-label="Zoom out">−</button>
         <button class="alt" id="frame">Frame scene</button><button class="alt" id="rcam">Reset camera</button></div>
       <p class="readout" id="camread"></p>
-      <p class="small mute">Play runs the scene physics: gravity along −y and a bounce at y = 0 (raise objects with the Y slider first).</p>
+      <p class="small mute">Play runs the scene physics: gravity along −z (up on screen) and a bounce at z = 0 (raise objects with the Z slider first).</p>
       <h3>Transformation (applies to every object)</h3>
       <div class="sliders">${slider('tx', 'X', tmin, tmax, tinit, tstep)}${slider('ty', 'Y', tmin, tmax, tinit, tstep)}${slider('tz', 'Z', tmin, tmax, tinit, tstep)}${slider('ts', 'Scale', smin, smax, sinit, sstep)}</div>
       <button class="alt" id="reset">Reset transformation</button>

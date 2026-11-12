@@ -40,7 +40,7 @@ FIX.physics.traj.forEach((row, t) => {
   physicsStep(obj, FIX.physics.dt);
   [...obj.position, ...obj.velocity, ...obj.rotation].forEach((x, k) => close(x, row[k], 1e-9, `physics step ${t}[${k}]`));
 });
-assert.ok(FIX.physics.traj.some(r => r[4] > 0) && Math.min(...FIX.physics.traj.map(r => r[1])) >= 0, 'ball bounced');
+assert.ok(FIX.physics.traj.some(r => r[5] > 0) && Math.min(...FIX.physics.traj.map(r => r[2])) >= 0, 'ball bounced on z = 0');
 checks++;
 
 // 4. camera: view / projection matrices, projected pixels, orbit and wheel zoom

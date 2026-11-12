@@ -162,7 +162,7 @@ class Scene:
 
     def update_physics(self, dt):
         for obj in self.objects:
-            # integrate, simple gravity (Y is up), bounce with damping at y = 0: see scene_math.physics_step
+            # integrate, simple gravity along -z (the camera's up axis), bounce at z = 0: scene_math.physics_step
             physics_step(obj.position, obj.velocity, obj.rotation, obj.angular_velocity, dt)
 
     def apply_transformations(self):
@@ -739,6 +739,9 @@ class WireframeViewer(QMainWindow):
 
         for obj in self.scene.objects:
             obj.update_animation(dt)
+
+        if self.is_playing:  # Play button: run the physics (gravity and ground bounce)
+            self.scene.update_physics(dt)
 
         self.update_display()
 

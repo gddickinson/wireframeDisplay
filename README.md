@@ -13,7 +13,7 @@ This project is a Python-based 3D visualization tool that allows users to create
 - **Scene Management**: Add multiple objects to a scene; rename, delete, edit properties (mass, scale, rotation speed) from the list's right-click menu.
 - **Real-time Transformations**: translation and scale sliders for the whole scene; drag an object to rotate it (Ctrl + drag to move it).
 - **Display Customization**: a Display Options dialog (faces, edges, vertices, colours, sizes); at present only "Show Faces" changes the view.
-- **Basic Physics Simulation** (in progress): `Scene.update_physics` (gravity and a bounce at y = 0) exists, but its call in the update loop is commented out, so Play does not run it yet. The web version runs it.
+- **Basic Physics Simulation**: Play runs `Scene.update_physics`: gravity along -z (the camera's up axis) and a damped bounce on the ground plane z = 0. Raise objects with the Z slider first.
 - **Animation**: per-object rotation at a set speed (right-click > Toggle Animation, speeds in Properties).
 - **File Operations**: open and save single objects as OBJ or JSON.
 
